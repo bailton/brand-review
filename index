@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>📷 视觉灵感日记（云同步）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #1e293b;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+        .header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .streak-badge { background: #f59e0b; color: white; padding: 4px 14px; border-radius: 30px; font-size: 0.85rem; font-weight: 600; }
+        .streak-badge.off { background: #94a3b8; }
+        .card { background: white; border-radius: 20px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 24px; }
+        .card-title { font-weight: 600; font-size: 0.9rem; color: #64748b; margin-bottom: 12px; letter-spacing: 0.5px; }
+        .today-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .today-grid { grid-template-columns: 1fr; } }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1; border-radius: 16px; padding: 24px; text-align: center;
+            cursor: pointer; transition: 0.2s; min-height: 200px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #fafbfc;
+        }
+        .upload-area:hover { border-color: #3b82f6; background: #f0f4ff; }
+        .upload-area img { max-width: 100%; max-height: 260px; border-radius: 12px; object-fit: contain; }
+        .upload-area .placeholder { color: #94a3b8; font-size: 0.95rem; }
+        .upload-area .placeholder span { font-size: 2rem; display: block; margin-bottom: 8px; }
+        #fileInput { display: none; }
+
+        .comment-section { display: flex; flex-direction: column; gap: 14px; }
+        .comment-section label { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+        .comment-section textarea {
+            width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 14px;
+            font-size: 0.95rem; font-family: inherit; resize: vertical; min-height: 70px;
+            transition: 0.2s; background: #fafbfc;
+        }
+        .comment-section textarea:focus { outline: none; border-color: #3b82f6; background: white; }
+        .btn-save { background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 4px; }
+        .btn-save:hover { background: #2563eb; }
+        .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
+        .btn-save.saved { background: #22c55e; }
+
+        .today-status { font-size: 0.85rem; color: #64748b; margin-top: 6px; }
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .history-item { background: #fafbfc; border-radius: 16px; overflow: hidden; border: 1px solid #eef2f6; transition: 0.2s; cursor: pointer; }
+        .history-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .history-item img { width: 100%; height: 140px; object-fit: cover; background: #eef2f6; }
+        .history-item .info { padding: 14px 16px; }
+        .history-item .date { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
+        .history-item .good-preview { font-size: 0.85rem; color: #1e293b; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .history-item .improve-preview { font-size: 0.8rem; color: #64748b; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .delete-btn { background: none; border: none; color: #94a3b8; font-size: 0.75rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; margin-top: 6px; }
+        .delete-btn:hover { background: #fee2e2; color: #ef4444; }
+        .empty-state { text-align: center; color: #94a3b8; padding: 40px 0; }
+        .stats-bar { display: flex; gap: 24px; flex-wrap: wrap; padding: 4px 0; }
+        .stats-bar .stat { display: flex; align-items: baseline; gap: 6px; font-size: 0.9rem; }
+        .stats-bar .stat .num { font-weight: 700; font-size: 1.2rem; color: #1e293b; }
+        .toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+        .btn-export { background: #e2e8f0; border: none; padding: 6px 16px; border-radius: 40px; font-size: 0.8rem; cursor: pointer; font-weight: 500; }
+        .btn-export:hover { background: #cbd5e1; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; padding: 20px;
+            opacity: 0; pointer-events: none; transition: 0.25s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: white; border-radius: 28px; max-width: 640px; width: 100%;
+            max-height: 90vh; overflow-y: auto; padding: 28px;
+            transform: scale(0.95); transition: 0.25s;
+        }
+        .modal-overlay.open .modal-content { transform: scale(1); }
+        .modal-content img { width: 100%; border-radius: 16px; margin-bottom: 16px; }
+        .modal-content .modal-good { background: #f0fdf4; padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid #22c55e; }
+        .modal-content .modal-improve { background: #fef2f2; padding: 12px 16px; border-radius: 12px; border-left: 4px solid #ef4444; }
+        .modal-content .modal-label { font-weight: 600; font-size: 0.8rem; color: #64748b; display: block; margin-bottom: 4px; }
+        .modal-close { display: block; margin: 16px 0 0 auto; background: #e2e8f0; border: none; padding: 8px 24px; border-radius: 40px; font-weight: 500; cursor: pointer; }
+        .modal-close:hover { background: #cbd5e1; }
+
+        /* 配置面板 */
+        .config-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .config-card input {
+            flex: 1;
+            min-width: 160px;
+            padding: 8px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+        .config-card input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .config-card .hint {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            width: 100%;
+        }
+        .btn-connect {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-connect:hover { background: #16a34a; }
+        .sync-status {
+            font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .sync-status.success { background: #dcfce7; color: #166534; }
+        .sync-status.loading { background: #fef9c3; color: #854d0e; }
+        .sync-status.error { background: #fee2e2; color: #991b1b; }
+
+        .footer { text-align: center; color: #94a3b8; font-size: 0.75rem; padding: 20px 0 10px; border-top: 1px solid #eef2f6; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="header">
+        <h1>📷 视觉灵感日记</h1>
+        <div>
+            <span class="sync-status" :class="syncStatusClass">{{ syncStatusText }}</span>
+            <span class="streak-badge" :class="{ off: streak === 0 }">🔥 {{ streak }} 天</span>
+        </div>
+    </div>
+
+    <!-- 配置面板：Bin ID + API Key -->
+    <div class="config-card">
+        <input type="text" v-model="binId" placeholder="Bin ID（如：6789abc...）" />
+        <input type="password" v-model="apiKey" placeholder="API Key（一串字符）" />
+        <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
+            {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
+        </button>
+        <div class="hint">
+            💡 去 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> 注册 → 创建 Bin → 获取 Bin ID 和 API Key
+        </div>
+    </div>
+
+    <!-- 今日面板 -->
+    <div class="card">
+        <div class="card-title">📌 今日记录 · {{ today }}</div>
+        <div class="today-grid">
+            <div class="upload-area" @click="triggerUpload">
+                <input type="file" id="fileInput" accept="image/*" @change="handleFile" />
+                <div v-if="!imagePreview" class="placeholder">
+                    <span>🖼️</span>
+                    点击上传截图<br /><span style="font-size:0.75rem;">支持 jpg / png / webp</span>
+                </div>
+                <img v-else :src="imagePreview" alt="预览" />
+            </div>
+            <div class="comment-section">
+                <div>
+                    <label>👍 值得学习的地方</label>
+                    <textarea v-model="goodInput" placeholder="色彩搭配、布局结构、交互细节…"></textarea>
+                </div>
+                <div>
+                    <label>🔧 可以改善的地方</label>
+                    <textarea v-model="improveInput" placeholder="信息层级、可读性、操作反馈…"></textarea>
+                </div>
+                <button class="btn-save" :class="{ saved: todaySaved }" @click="saveToday" :disabled="!canSave">
+                    {{ todaySaved ? '✅ 今日已打卡' : '💾 保存今日记录' }}
+                </button>
+                <div class="today-status" v-if="todaySaved">✅ 今日已完成，明天继续加油！</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计 + 工具 -->
+    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+        <div class="stats-bar">
+            <span class="stat">📚 总记录 <span class="num">{{ totalRecords }}</span></span>
+            <span class="stat">📅 本周 <span class="num">{{ weekCount }}</span></span>
+        </div>
+        <div class="toolbar">
+            <button class="btn-export" @click="exportData">📤 导出备份</button>
+            <button class="btn-export" @click="importData">📥 导入备份</button>
+            <input type="file" id="importInput" accept=".json" style="display:none" @change="handleImport" />
+            <button class="btn-export" @click="clearAll" style="color:#ef4444;">🗑️ 清空所有</button>
+        </div>
+    </div>
+
+    <!-- 历史画廊 -->
+    <div class="card">
+        <div class="card-title">📅 历史记录</div>
+        <div v-if="records.length === 0" class="empty-state">
+            <span style="font-size:2rem; display:block; margin-bottom:8px;">📭</span>
+            还没有记录，今天开始吧！
+        </div>
+        <div class="history-grid" v-else>
+            <div class="history-item" v-for="item in sortedRecords" :key="item.id" @click="openModal(item)">
+                <img :src="item.imageData" alt="截图" />
+                <div class="info">
+                    <div class="date">{{ item.date }}</div>
+                    <div class="good-preview">👍 {{ item.good || '未填写' }}</div>
+                    <div class="improve-preview" v-if="item.improve">🔧 {{ item.improve }}</div>
+                    <button class="delete-btn" @click.stop="deleteRecord(item.id)">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="modalOpen = false">
+        <div class="modal-content" v-if="modalItem">
+            <img :src="modalItem.imageData" alt="大图" />
+            <div class="modal-good"><span class="modal-label">👍 值得学习</span>{{ modalItem.good || '未填写' }}</div>
+            <div class="modal-improve" v-if="modalItem.improve"><span class="modal-label">🔧 可以改善</span>{{ modalItem.improve }}</div>
+            <div style="color:#94a3b8; font-size:0.8rem; margin-top:8px;">{{ modalItem.date }}</div>
+            <button class="modal-close" @click="modalOpen = false">关闭</button>
+        </div>
+    </div>
+
+    <div class="footer">☁️ 数据存储在 JSONBin 云端 · 跨设备同步 · 每日视觉思考练习</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+<script>
+    (function() {
+        const STORAGE_KEY = 'visual_diary_records';
+        const CONFIG_KEY = 'visual_diary_config';
+
+        new Vue({
+            el: '#app',
+            data: {
+                records: [],
+                binId: '',
+                apiKey: '',
+                syncing: false,
+                syncStatus: '', // 'success' | 'loading' | 'error'
+                syncMsg: '',
+                imagePreview: null,
+                imageFile: null,
+                goodInput: '',
+                improveInput: '',
+                todaySaved: false,
+                modalOpen: false,
+                modalItem: null,
+                // 防抖
+                _saveTimer: null
+            },
+            computed: {
+                today() {
+                    return new Date().toISOString().slice(0, 10);
+                },
+                todayRecord() {
+                    return this.records.find(r => r.date === this.today);
+                },
+                canSave() {
+                    return this.imagePreview && (this.goodInput.trim() || this.improveInput.trim()) && !this.todaySaved;
+                },
+                totalRecords() {
+                    return this.records.length;
+                },
+                weekCount() {
+                    const now = new Date();
+                    const startOfWeek = new Date(now);
+                    startOfWeek.setDate(now.getDate() - now.getDay());
+                    startOfWeek.setHours(0,0,0,0);
+                    return this.records.filter(r => {
+                        const d = new Date(r.date);
+                        return d >= startOfWeek;
+                    }).length;
+                },
+                streak() {
+                    if (this.records.length === 0) return 0;
+                    const dates = this.records.map(r => r.date).sort();
+                    const todayStr = this.today;
+                    let hasToday = dates.includes(todayStr);
+                    let checkDate = hasToday ? todayStr : this.getYesterday();
+                    if (!hasToday && !dates.includes(checkDate)) return 0;
+                    let current = new Date(checkDate);
+                    let count = 0;
+                    while (true) {
+                        const ds = current.toISOString().slice(0, 10);
+                        if (dates.includes(ds)) { count++; current.setDate(current.getDate() - 1); }
+                        else break;
+                    }
+                    return count;
+                },
+                sortedRecords() {
+                    return [...this.records].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+                },
+                syncStatusClass() {
+                    if (this.syncStatus === 'success') return 'success';
+                    if (this.syncStatus === 'loading') return 'loading';
+                    if (this.syncStatus === 'error') return 'error';
+                    return '';
+                },
+                syncStatusText() {
+                    if (this.syncStatus === 'success') return '✅ 已同步';
+                    if (this.syncStatus === 'loading') return '⏳ 同步中';
+                    if (this.syncStatus === 'error') return '❌ ' + this.syncMsg;
+                    return '⚪ 未连接';
+                }
+            },
+            methods: {
+                getYesterday() {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 1);
+                    return d.toISOString().slice(0, 10);
+                },
+                triggerUpload() {
+                    document.getElementById('fileInput').click();
+                },
+                handleFile(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        this.imagePreview = ev.target.result;
+                        this.imageFile = file;
+                        this.loadTodayData();
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = '';
+                },
+                loadTodayData() {
+                    const record = this.todayRecord;
+                    if (record) {
+                        this.goodInput = record.good || '';
+                        this.improveInput = record.improve || '';
+                        this.todaySaved = true;
+                        if (!this.imagePreview) this.imagePreview = record.imageData;
+                    } else {
+                        this.todaySaved = false;
+                    }
+                },
+                saveToday() {
+                    if (!this.canSave) return;
+                    const record = {
+                        id: this.today + '-' + String(Date.now()).slice(-4),
+                        date: this.today,
+                        imageData: this.imagePreview,
+                        imageName: this.imageFile ? this.imageFile.name : 'screenshot.png',
+                        good: this.goodInput.trim(),
+                        improve: this.improveInput.trim(),
+                        createdAt: new Date().toISOString()
+                    };
+                    const existIdx = this.records.findIndex(r => r.date === this.today);
+                    if (existIdx !== -1) this.records[existIdx] = record;
+                    else this.records.push(record);
+                    this.todaySaved = true;
+                    this.saveToCloud();
+                },
+                deleteRecord(id) {
+                    if (!confirm('确定要删除吗？')) return;
+                    this.records = this.records.filter(r => r.id !== id);
+                    if (!this.records.some(r => r.date === this.today)) this.todaySaved = false;
+                    this.saveToCloud();
+                },
+                openModal(item) {
+                    this.modalItem = item;
+                    this.modalOpen = true;
+                },
+
+                // ========== 云端同步 ==========
+                async saveToCloud() {
+                    if (!this.binId || !this.apiKey) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 Bin ID 和 API Key';
+                        return;
+                    }
+                    this.syncStatus = 'loading';
+                    try {
+                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${this.binId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Master-Key': this.apiKey
+                            },
+                            body: JSON.stringify(this.records)
+                        });
+                        if (resp.ok) {
+                            this.syncStatus = 'success';
+                            this.syncMsg = '';
+                            // 同时存一份到本地做缓存
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
+                        } else {
+                            const err = await resp.json();
+                            this.syncStatus = 'error';
+                            this.syncMsg = err.message || '保存失败';
+                        }
+                    } catch (e) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '网络错误，请检查网络';
+                        console.warn(e);
+                    }
+                },
+
+                async loadFromCloud() {
+                    if (!this.binId || !this.apiKey) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 Bin ID 和 API Key';
+                        return;
+                    }
+                    this.syncStatus = 'loading';
+                    try {
+                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${this.binId}/latest`, {
+                            headers: { 'X-Master-Key': this.apiKey }
+                        });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (Array.isArray(data.record)) {
+                                this.records = data.record;
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
+                                this.syncStatus = 'success';
+                                this.syncMsg = '';
+                                this.checkToday();
+                            } else if (data.record === null || data.record === undefined) {
+                                // 空 Bin，初始化为空数组
+                                this.records = [];
+                                this.syncStatus = 'success';
+                                this.syncMsg = '';
+                            } else {
+                                this.syncStatus = 'error';
+                                this.syncMsg = '数据格式异常';
+                            }
+                        } else {
+                            // 404 表示 Bin 不存在或没数据
+                            if (resp.status === 404) {
+                                this.records = [];
+                                this.syncStatus = 'success';
+                                this.syncMsg = '';
+                                // 尝试写入空数据初始化 Bin
+                                await this.saveToCloud();
+                            } else {
+                                const err = await resp.json();
+                                this.syncStatus = 'error';
+                                this.syncMsg = err.message || '加载失败';
+                            }
+                        }
+                    } catch (e) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '网络错误，请检查网络';
+                        console.warn(e);
+                    }
+                },
+
+                async connectAndSync() {
+                    if (!this.binId || !this.apiKey) {
+                        alert('请填写 Bin ID 和 API Key');
+                        return;
+                    }
+                    // 保存配置到 localStorage
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: this.binId, apiKey: this.apiKey }));
+                    await this.loadFromCloud();
+                },
+
+                // ========== 本地缓存 ==========
+                loadFromLocal() {
+                    try {
+                        const data = localStorage.getItem(STORAGE_KEY);
+                        if (data) this.records = JSON.parse(data);
+                    } catch (e) { this.records = []; }
+                },
+
+                checkToday() {
+                    const record = this.todayRecord;
+                    if (record) {
+                        this.imagePreview = record.imageData;
+                        this.goodInput = record.good || '';
+                        this.improveInput = record.improve || '';
+                        this.todaySaved = true;
+                    }
+                },
+
+                // ========== 导入导出 ==========
+                exportData() {
+                    const data = JSON.stringify(this.records, null, 2);
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `视觉灵感日记_${this.today}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                importData() {
+                    document.getElementById('importInput').click();
+                },
+                handleImport(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const data = JSON.parse(ev.target.result);
+                            if (Array.isArray(data)) {
+                                if (confirm(`导入 ${data.length} 条记录，是否覆盖？`)) {
+                                    this.records = data;
+                                    this.saveToCloud();
+                                    this.checkToday();
+                                    alert('导入成功！');
+                                }
+                            } else {
+                                alert('文件格式不正确');
+                            }
+                        } catch (err) {
+                            alert('解析失败');
+                        }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                },
+                clearAll() {
+                    if (confirm('确定删除所有记录吗？')) {
+                        this.records = [];
+                        this.imagePreview = null;
+                        this.goodInput = '';
+                        this.improveInput = '';
+                        this.todaySaved = false;
+                        this.saveToCloud();
+                    }
+                }
+            },
+            mounted() {
+                // 加载本地配置
+                try {
+                    const config = localStorage.getItem(CONFIG_KEY);
+                    if (config) {
+                        const c = JSON.parse(config);
+                        this.binId = c.binId || '';
+                        this.apiKey = c.apiKey || '';
+                    }
+                } catch (e) {}
+
+                // 先加载本地缓存，再尝试云端同步
+                this.loadFromLocal();
+                this.checkToday();
+
+                // 如果有配置，自动同步
+                if (this.binId && this.apiKey) {
+                    this.loadFromCloud();
+                }
+            }
+        });
+    })();
+</script>
+</body>
+</html>

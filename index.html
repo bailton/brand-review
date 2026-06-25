@@ -87,7 +87,6 @@
         .modal-close { display: block; margin: 16px 0 0 auto; background: #e2e8f0; border: none; padding: 8px 24px; border-radius: 40px; font-weight: 500; cursor: pointer; }
         .modal-close:hover { background: #cbd5e1; }
 
-        /* 配置面板 */
         .config-card {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -254,7 +253,7 @@
                 binId: '',
                 apiKey: '',
                 syncing: false,
-                syncStatus: '', // 'success' | 'loading' | 'error'
+                syncStatus: '',
                 syncMsg: '',
                 imagePreview: null,
                 imageFile: null,
@@ -263,7 +262,6 @@
                 todaySaved: false,
                 modalOpen: false,
                 modalItem: null,
-                // 防抖
                 _saveTimer: null
             },
             computed: {
@@ -401,7 +399,6 @@
                         if (resp.ok) {
                             this.syncStatus = 'success';
                             this.syncMsg = '';
-                            // 同时存一份到本地做缓存
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
                         } else {
                             const err = await resp.json();
@@ -435,7 +432,6 @@
                                 this.syncMsg = '';
                                 this.checkToday();
                             } else if (data.record === null || data.record === undefined) {
-                                // 空 Bin，初始化为空数组
                                 this.records = [];
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
@@ -444,12 +440,10 @@
                                 this.syncMsg = '数据格式异常';
                             }
                         } else {
-                            // 404 表示 Bin 不存在或没数据
                             if (resp.status === 404) {
                                 this.records = [];
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
-                                // 尝试写入空数据初始化 Bin
                                 await this.saveToCloud();
                             } else {
                                 const err = await resp.json();
@@ -552,11 +546,9 @@
                     }
                 } catch (e) {}
 
-                // 先加载本地缓存，再尝试云端同步
                 this.loadFromLocal();
                 this.checkToday();
 
-                // 如果有配置，自动同步
                 if (this.binId && this.apiKey) {
                     this.loadFromCloud();
                 }

@@ -93,6 +93,8 @@
             border-radius: 16px;
             padding: 16px 20px;
             margin-bottom: 16px;
+        }
+        .config-row {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
@@ -114,7 +116,7 @@
         .config-card .hint {
             font-size: 0.75rem;
             color: #94a3b8;
-            width: 100%;
+            margin-top: 8px;
         }
         .btn-connect {
             background: #22c55e;
@@ -125,8 +127,11 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 0.85rem;
+            flex-shrink: 0;
         }
         .btn-connect:hover { background: #16a34a; }
+        .btn-connect:disabled { opacity: 0.6; cursor: not-allowed; }
+        
         .sync-status {
             font-size: 0.8rem;
             padding: 4px 12px;
@@ -138,6 +143,16 @@
         .sync-status.error { background: #fee2e2; color: #991b1b; }
 
         .footer { text-align: center; color: #94a3b8; font-size: 0.75rem; padding: 20px 0 10px; border-top: 1px solid #eef2f6; margin-top: 10px; }
+        
+        .debug-hint {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin-top: 6px;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -151,16 +166,19 @@
         </div>
     </div>
 
-    <!-- 配置面板：Bin ID + API Key -->
+    <!-- 配置面板：使用 ref 直接获取输入值 -->
     <div class="config-card">
-        <input type="text" v-model="binId" placeholder="Bin ID（如：6789abc...）" />
-        <input type="password" v-model="apiKey" placeholder="API Key（一串字符）" />
-        <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
-            {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
-        </button>
+        <div class="config-row">
+            <input type="text" ref="binIdInput" placeholder="Bin ID（如：6789abc...）" />
+            <input type="password" ref="apiKeyInput" placeholder="API Key（一串字符）" />
+            <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
+                {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
+            </button>
+        </div>
         <div class="hint">
             💡 去 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> 注册 → 创建 Bin → 获取 Bin ID 和 API Key
         </div>
+        <div class="debug-hint" v-if="debugInfo">{{ debugInfo }}</div>
     </div>
 
     <!-- 今日面板 -->
@@ -262,7 +280,7 @@
                 todaySaved: false,
                 modalOpen: false,
                 modalItem: null,
-                _saveTimer: null
+                debugInfo: ''
             },
             computed: {
                 today() {
@@ -379,20 +397,28 @@
                     this.modalOpen = true;
                 },
 
+                // ========== 从输入框直接读取值 ==========
+                getInputValues() {
+                    const binId = this.$refs.binIdInput ? this.$refs.binIdInput.value : '';
+                    const apiKey = this.$refs.apiKeyInput ? this.$refs.apiKeyInput.value : '';
+                    return { binId, apiKey };
+                },
+
                 // ========== 云端同步 ==========
                 async saveToCloud() {
-                    if (!this.binId || !this.apiKey) {
+                    const { binId, apiKey } = this.getInputValues();
+                    if (!binId || !apiKey) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID 和 API Key';
                         return;
                     }
                     this.syncStatus = 'loading';
                     try {
-                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${this.binId}`, {
+                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-Master-Key': this.apiKey
+                                'X-Access-Key': apiKey
                             },
                             body: JSON.stringify(this.records)
                         });
@@ -400,6 +426,8 @@
                             this.syncStatus = 'success';
                             this.syncMsg = '';
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
+                            // 保存配置到 localStorage
+                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
                         } else {
                             const err = await resp.json();
                             this.syncStatus = 'error';
@@ -413,15 +441,16 @@
                 },
 
                 async loadFromCloud() {
-                    if (!this.binId || !this.apiKey) {
+                    const { binId, apiKey } = this.getInputValues();
+                    if (!binId || !apiKey) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID 和 API Key';
                         return;
                     }
                     this.syncStatus = 'loading';
                     try {
-                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${this.binId}/latest`, {
-                            headers: { 'X-Master-Key': this.apiKey }
+                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+                            headers: { 'X-Access-Key': apiKey }
                         });
                         if (resp.ok) {
                             const data = await resp.json();
@@ -459,12 +488,13 @@
                 },
 
                 async connectAndSync() {
-                    if (!this.binId || !this.apiKey) {
+                    const { binId, apiKey } = this.getInputValues();
+                    this.debugInfo = `Bin ID: ${binId ? '已填 ✓' : '未填 ✗'} | API Key: ${apiKey ? '已填 ✓' : '未填 ✗'}`;
+                    
+                    if (!binId || !apiKey) {
                         alert('请填写 Bin ID 和 API Key');
                         return;
                     }
-                    // 保存配置到 localStorage
-                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: this.binId, apiKey: this.apiKey }));
                     await this.loadFromCloud();
                 },
 
@@ -474,6 +504,16 @@
                         const data = localStorage.getItem(STORAGE_KEY);
                         if (data) this.records = JSON.parse(data);
                     } catch (e) { this.records = []; }
+                    
+                    // 加载配置到输入框
+                    try {
+                        const config = localStorage.getItem(CONFIG_KEY);
+                        if (config) {
+                            const c = JSON.parse(config);
+                            if (this.$refs.binIdInput) this.$refs.binIdInput.value = c.binId || '';
+                            if (this.$refs.apiKeyInput) this.$refs.apiKeyInput.value = c.apiKey || '';
+                        }
+                    } catch (e) {}
                 },
 
                 checkToday() {
@@ -536,22 +576,16 @@
                 }
             },
             mounted() {
-                // 加载本地配置
-                try {
-                    const config = localStorage.getItem(CONFIG_KEY);
-                    if (config) {
-                        const c = JSON.parse(config);
-                        this.binId = c.binId || '';
-                        this.apiKey = c.apiKey || '';
-                    }
-                } catch (e) {}
-
                 this.loadFromLocal();
                 this.checkToday();
 
-                if (this.binId && this.apiKey) {
-                    this.loadFromCloud();
-                }
+                // 如果有保存的配置，自动同步
+                setTimeout(() => {
+                    const { binId, apiKey } = this.getInputValues();
+                    if (binId && apiKey) {
+                        this.loadFromCloud();
+                    }
+                }, 500);
             }
         });
     })();

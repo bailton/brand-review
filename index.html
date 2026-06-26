@@ -166,11 +166,11 @@
         </div>
     </div>
 
-    <!-- 配置面板：使用 ref 直接获取输入值 -->
+    <!-- 配置面板 -->
     <div class="config-card">
         <div class="config-row">
-            <input type="text" ref="binIdInput" placeholder="Bin ID（如：6789abc...）" />
-            <input type="password" ref="apiKeyInput" placeholder="API Key（一串字符）" />
+            <input type="text" id="binIdInput" placeholder="Bin ID（如：6789abc...）" />
+            <input type="password" id="apiKeyInput" placeholder="API Key（一串字符）" />
             <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
                 {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
             </button>
@@ -178,7 +178,7 @@
         <div class="hint">
             💡 去 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> 注册 → 创建 Bin → 获取 Bin ID 和 API Key
         </div>
-        <div class="debug-hint" v-if="debugInfo">{{ debugInfo }}</div>
+        <div class="debug-hint" id="debugHint">等待连接...</div>
     </div>
 
     <!-- 今日面板 -->
@@ -255,21 +255,19 @@
         </div>
     </div>
 
-    <div class="footer">☁️ 数据存储在 JSONBin 云端 · 跨设备同步 · 每日视觉思考练习</div>
+    <div class="footer">☁️ 数据存储在 JSONBin 云端 · 跨设备同步 · 每日市场观察练习</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
 <script>
     (function() {
-        const STORAGE_KEY = 'visual_diary_records';
-        const CONFIG_KEY = 'visual_diary_config';
+        const STORAGE_KEY = 'market_diary_records';
+        const CONFIG_KEY = 'market_diary_config';
 
         new Vue({
             el: '#app',
             data: {
                 records: [],
-                binId: '',
-                apiKey: '',
                 syncing: false,
                 syncStatus: '',
                 syncMsg: '',
@@ -279,8 +277,7 @@
                 improveInput: '',
                 todaySaved: false,
                 modalOpen: false,
-                modalItem: null,
-                debugInfo: ''
+                modalItem: null
             },
             computed: {
                 today() {
@@ -343,6 +340,23 @@
                     d.setDate(d.getDate() - 1);
                     return d.toISOString().slice(0, 10);
                 },
+                // ========== 直接从 DOM 读取输入框值 ==========
+                getBinId() {
+                    const el = document.getElementById('binIdInput');
+                    return el ? el.value.trim() : '';
+                },
+                getApiKey() {
+                    const el = document.getElementById('apiKeyInput');
+                    return el ? el.value.trim() : '';
+                },
+                updateDebug(msg, isError) {
+                    const el = document.getElementById('debugHint');
+                    if (el) {
+                        el.textContent = msg;
+                        el.style.color = isError ? '#991b1b' : '#94a3b8';
+                        el.style.background = isError ? '#fee2e2' : '#f1f5f9';
+                    }
+                },
                 triggerUpload() {
                     document.getElementById('fileInput').click();
                 },
@@ -397,22 +411,21 @@
                     this.modalOpen = true;
                 },
 
-                // ========== 从输入框直接读取值 ==========
-                getInputValues() {
-                    const binId = this.$refs.binIdInput ? this.$refs.binIdInput.value : '';
-                    const apiKey = this.$refs.apiKeyInput ? this.$refs.apiKeyInput.value : '';
-                    return { binId, apiKey };
-                },
-
                 // ========== 云端同步 ==========
                 async saveToCloud() {
-                    const { binId, apiKey } = this.getInputValues();
+                    const binId = this.getBinId();
+                    const apiKey = this.getApiKey();
+                    
                     if (!binId || !apiKey) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID 和 API Key';
+                        this.updateDebug('❌ Bin ID 或 API Key 为空', true);
                         return;
                     }
+                    
                     this.syncStatus = 'loading';
+                    this.updateDebug('⏳ 正在保存到云端...', false);
+                    
                     try {
                         const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                             method: 'PUT',
@@ -426,28 +439,36 @@
                             this.syncStatus = 'success';
                             this.syncMsg = '';
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
-                            // 保存配置到 localStorage
                             localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
+                            this.updateDebug('✅ 保存成功！', false);
                         } else {
                             const err = await resp.json();
                             this.syncStatus = 'error';
                             this.syncMsg = err.message || '保存失败';
+                            this.updateDebug('❌ 保存失败: ' + (err.message || '未知错误'), true);
                         }
                     } catch (e) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '网络错误，请检查网络';
+                        this.syncMsg = '网络错误';
+                        this.updateDebug('❌ 网络错误，请检查网络连接', true);
                         console.warn(e);
                     }
                 },
 
                 async loadFromCloud() {
-                    const { binId, apiKey } = this.getInputValues();
+                    const binId = this.getBinId();
+                    const apiKey = this.getApiKey();
+                    
                     if (!binId || !apiKey) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID 和 API Key';
+                        this.updateDebug('❌ Bin ID 或 API Key 为空，请填写后重试', true);
                         return;
                     }
+                    
                     this.syncStatus = 'loading';
+                    this.updateDebug(`⏳ 正在连接云端... (Bin ID: ${binId})`, false);
+                    
                     try {
                         const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
                             headers: { 'X-Access-Key': apiKey }
@@ -460,41 +481,51 @@
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
                                 this.checkToday();
+                                this.updateDebug(`✅ 连接成功！已加载 ${this.records.length} 条记录`, false);
                             } else if (data.record === null || data.record === undefined) {
                                 this.records = [];
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
+                                this.updateDebug('✅ 连接成功！当前云端无数据，可以开始记录', false);
                             } else {
                                 this.syncStatus = 'error';
                                 this.syncMsg = '数据格式异常';
+                                this.updateDebug('❌ 数据格式异常，请检查 Bin 是否正确', true);
                             }
                         } else {
                             if (resp.status === 404) {
                                 this.records = [];
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
+                                this.updateDebug('✅ Bin 为空，自动初始化完成', false);
                                 await this.saveToCloud();
                             } else {
                                 const err = await resp.json();
                                 this.syncStatus = 'error';
                                 this.syncMsg = err.message || '加载失败';
+                                this.updateDebug('❌ 连接失败: ' + (err.message || '未知错误'), true);
                             }
                         }
                     } catch (e) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '网络错误，请检查网络';
+                        this.syncMsg = '网络错误';
+                        this.updateDebug('❌ 网络错误，请检查网络连接后重试', true);
                         console.warn(e);
                     }
                 },
 
                 async connectAndSync() {
-                    const { binId, apiKey } = this.getInputValues();
-                    this.debugInfo = `Bin ID: ${binId ? '已填 ✓' : '未填 ✗'} | API Key: ${apiKey ? '已填 ✓' : '未填 ✗'}`;
+                    const binId = this.getBinId();
+                    const apiKey = this.getApiKey();
+                    
+                    this.updateDebug(`Bin ID: ${binId || '空'} | API Key: ${apiKey ? '已填 ✓' : '空 ✗'}`, false);
                     
                     if (!binId || !apiKey) {
-                        alert('请填写 Bin ID 和 API Key');
+                        alert('请完整填写 Bin ID 和 API Key');
                         return;
                     }
+                    
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
                     await this.loadFromCloud();
                 },
 
@@ -505,13 +536,14 @@
                         if (data) this.records = JSON.parse(data);
                     } catch (e) { this.records = []; }
                     
-                    // 加载配置到输入框
                     try {
                         const config = localStorage.getItem(CONFIG_KEY);
                         if (config) {
                             const c = JSON.parse(config);
-                            if (this.$refs.binIdInput) this.$refs.binIdInput.value = c.binId || '';
-                            if (this.$refs.apiKeyInput) this.$refs.apiKeyInput.value = c.apiKey || '';
+                            const binEl = document.getElementById('binIdInput');
+                            const keyEl = document.getElementById('apiKeyInput');
+                            if (binEl) binEl.value = c.binId || '';
+                            if (keyEl) keyEl.value = c.apiKey || '';
                         }
                     } catch (e) {}
                 },
@@ -533,7 +565,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `视觉灵感日记_${this.today}.json`;
+                    a.download = `市场日记_${this.today}.json`;
                     a.click();
                     URL.revokeObjectURL(url);
                 },
@@ -579,11 +611,13 @@
                 this.loadFromLocal();
                 this.checkToday();
 
-                // 如果有保存的配置，自动同步
                 setTimeout(() => {
-                    const { binId, apiKey } = this.getInputValues();
+                    const binId = this.getBinId();
+                    const apiKey = this.getApiKey();
                     if (binId && apiKey) {
                         this.loadFromCloud();
+                    } else {
+                        this.updateDebug('💡 请填写 Bin ID 和 API Key，然后点击"连接并同步"', false);
                     }
                 }, 500);
             }

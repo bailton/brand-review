@@ -145,13 +145,26 @@
         .footer { text-align: center; color: #94a3b8; font-size: 0.75rem; padding: 20px 0 10px; border-top: 1px solid #eef2f6; margin-top: 10px; }
         
         .debug-hint {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            background: #f1f5f9;
-            padding: 6px 12px;
+            font-size: 0.8rem;
+            padding: 8px 12px;
             border-radius: 6px;
-            margin-top: 6px;
+            margin-top: 8px;
             word-break: break-all;
+            font-family: monospace;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        .debug-hint.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .debug-hint.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .debug-hint.loading {
+            background: #fef9c3;
+            color: #854d0e;
         }
     </style>
 </head>
@@ -170,15 +183,16 @@
     <div class="config-card">
         <div class="config-row">
             <input type="text" id="binIdInput" placeholder="Bin ID（如：6789abc...）" />
-            <input type="password" id="apiKeyInput" placeholder="API Key（一串字符）" />
+            <input type="password" id="apiKeyInput" placeholder="Access Key（可选，Public Bin 可不填）" />
             <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
                 {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
             </button>
         </div>
         <div class="hint">
-            💡 去 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> 注册 → 创建 Bin → 获取 Bin ID 和 API Key
+            💡 去 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> 注册 → 创建 Bin → 获取 Bin ID<br>
+            🔑 Access Key 在 Account → API Keys 中创建（勾选全部权限），Public Bin 可留空
         </div>
-        <div class="debug-hint" id="debugHint">等待连接...</div>
+        <div class="debug-hint" id="debugHint">💡 请填写 Bin ID，然后点击"连接并同步"</div>
     </div>
 
     <!-- 今日面板 -->
@@ -340,7 +354,6 @@
                     d.setDate(d.getDate() - 1);
                     return d.toISOString().slice(0, 10);
                 },
-                // ========== 直接从 DOM 读取输入框值 ==========
                 getBinId() {
                     const el = document.getElementById('binIdInput');
                     return el ? el.value.trim() : '';
@@ -349,12 +362,11 @@
                     const el = document.getElementById('apiKeyInput');
                     return el ? el.value.trim() : '';
                 },
-                updateDebug(msg, isError) {
+                updateDebug(msg, type) {
                     const el = document.getElementById('debugHint');
                     if (el) {
                         el.textContent = msg;
-                        el.style.color = isError ? '#991b1b' : '#94a3b8';
-                        el.style.background = isError ? '#fee2e2' : '#f1f5f9';
+                        el.className = 'debug-hint' + (type ? ' ' + type : '');
                     }
                 },
                 triggerUpload() {
@@ -416,41 +428,45 @@
                     const binId = this.getBinId();
                     const apiKey = this.getApiKey();
                     
-                    if (!binId || !apiKey) {
+                    if (!binId) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Bin ID 和 API Key';
-                        this.updateDebug('❌ Bin ID 或 API Key 为空', true);
+                        this.syncMsg = '请先配置 Bin ID';
+                        this.updateDebug('❌ Bin ID 为空', 'error');
                         return;
                     }
                     
                     this.syncStatus = 'loading';
-                    this.updateDebug('⏳ 正在保存到云端...', false);
+                    this.updateDebug('⏳ 正在保存到云端...', 'loading');
                     
                     try {
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (apiKey) {
+                            headers['X-Access-Key'] = apiKey;
+                        }
+                        
+                        // 保存时包装成 { records: [] } 格式
+                        const payload = { records: this.records };
                         const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                             method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Access-Key': apiKey
-                            },
-                            body: JSON.stringify(this.records)
+                            headers: headers,
+                            body: JSON.stringify(payload)
                         });
                         if (resp.ok) {
                             this.syncStatus = 'success';
                             this.syncMsg = '';
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
                             localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
-                            this.updateDebug('✅ 保存成功！', false);
+                            this.updateDebug('✅ 保存成功！', 'success');
                         } else {
                             const err = await resp.json();
                             this.syncStatus = 'error';
                             this.syncMsg = err.message || '保存失败';
-                            this.updateDebug('❌ 保存失败: ' + (err.message || '未知错误'), true);
+                            this.updateDebug('❌ 保存失败: ' + (err.message || '未知错误'), 'error');
                         }
                     } catch (e) {
                         this.syncStatus = 'error';
                         this.syncMsg = '网络错误';
-                        this.updateDebug('❌ 网络错误，请检查网络连接', true);
+                        this.updateDebug('❌ 网络错误，请检查网络连接', 'error');
                         console.warn(e);
                     }
                 },
@@ -459,57 +475,71 @@
                     const binId = this.getBinId();
                     const apiKey = this.getApiKey();
                     
-                    if (!binId || !apiKey) {
+                    if (!binId) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Bin ID 和 API Key';
-                        this.updateDebug('❌ Bin ID 或 API Key 为空，请填写后重试', true);
+                        this.syncMsg = '请先配置 Bin ID';
+                        this.updateDebug('❌ Bin ID 为空，请填写后重试', 'error');
                         return;
                     }
                     
                     this.syncStatus = 'loading';
-                    this.updateDebug(`⏳ 正在连接云端... (Bin ID: ${binId})`, false);
+                    this.updateDebug(`⏳ 正在连接云端... (Bin ID: ${binId})`, 'loading');
                     
                     try {
+                        const headers = {};
+                        if (apiKey) {
+                            headers['X-Access-Key'] = apiKey;
+                        }
+                        
                         const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
-                            headers: { 'X-Access-Key': apiKey }
+                            headers: headers
                         });
                         if (resp.ok) {
                             const data = await resp.json();
-                            if (Array.isArray(data.record)) {
-                                this.records = data.record;
+                            let recordData = data.record;
+                            
+                            // 兼容两种格式：直接是数组，或者 { records: [] }
+                            if (recordData && typeof recordData === 'object' && !Array.isArray(recordData)) {
+                                if (recordData.records && Array.isArray(recordData.records)) {
+                                    recordData = recordData.records;
+                                }
+                            }
+                            
+                            if (Array.isArray(recordData)) {
+                                this.records = recordData;
                                 localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
                                 this.checkToday();
-                                this.updateDebug(`✅ 连接成功！已加载 ${this.records.length} 条记录`, false);
-                            } else if (data.record === null || data.record === undefined) {
+                                this.updateDebug(`✅ 连接成功！已加载 ${this.records.length} 条记录`, 'success');
+                            } else if (recordData === null || recordData === undefined) {
                                 this.records = [];
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
-                                this.updateDebug('✅ 连接成功！当前云端无数据，可以开始记录', false);
+                                this.updateDebug('✅ 连接成功！当前云端无数据，可以开始记录', 'success');
                             } else {
                                 this.syncStatus = 'error';
                                 this.syncMsg = '数据格式异常';
-                                this.updateDebug('❌ 数据格式异常，请检查 Bin 是否正确', true);
+                                this.updateDebug('❌ 数据格式异常，请检查 Bin 是否正确', 'error');
                             }
                         } else {
                             if (resp.status === 404) {
                                 this.records = [];
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
-                                this.updateDebug('✅ Bin 为空，自动初始化完成', false);
+                                this.updateDebug('✅ Bin 为空，自动初始化完成', 'success');
                                 await this.saveToCloud();
                             } else {
                                 const err = await resp.json();
                                 this.syncStatus = 'error';
                                 this.syncMsg = err.message || '加载失败';
-                                this.updateDebug('❌ 连接失败: ' + (err.message || '未知错误'), true);
+                                this.updateDebug('❌ 连接失败: ' + (err.message || '未知错误'), 'error');
                             }
                         }
                     } catch (e) {
                         this.syncStatus = 'error';
                         this.syncMsg = '网络错误';
-                        this.updateDebug('❌ 网络错误，请检查网络连接后重试', true);
+                        this.updateDebug('❌ 网络错误，请检查网络连接后重试', 'error');
                         console.warn(e);
                     }
                 },
@@ -518,10 +548,10 @@
                     const binId = this.getBinId();
                     const apiKey = this.getApiKey();
                     
-                    this.updateDebug(`Bin ID: ${binId || '空'} | API Key: ${apiKey ? '已填 ✓' : '空 ✗'}`, false);
+                    this.updateDebug(`Bin ID: ${binId || '空'} | Access Key: ${apiKey ? '已填 ✓' : '未填（Public 模式）'}`, '');
                     
-                    if (!binId || !apiKey) {
-                        alert('请完整填写 Bin ID 和 API Key');
+                    if (!binId) {
+                        alert('请填写 Bin ID');
                         return;
                     }
                     
@@ -613,11 +643,10 @@
 
                 setTimeout(() => {
                     const binId = this.getBinId();
-                    const apiKey = this.getApiKey();
-                    if (binId && apiKey) {
+                    if (binId) {
                         this.loadFromCloud();
                     } else {
-                        this.updateDebug('💡 请填写 Bin ID 和 API Key，然后点击"连接并同步"', false);
+                        this.updateDebug('💡 请填写 Bin ID，然后点击"连接并同步"', '');
                     }
                 }, 500);
             }

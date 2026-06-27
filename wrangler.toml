@@ -1,14 +1,11 @@
 name = "brand-review1"
+
+[pages]
 type = "static"
 
 [build]
 command = ""
-
-[build.environment]
-NODE_VERSION = "18"
+output_dir = "."
 
 [env.production]
-routes = []
-
-[env.preview]
 routes = []

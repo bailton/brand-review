@@ -1,5 +1,14 @@
 name = "brand-review1"
 type = "static"
 
+[build]
+command = ""
+
+[build.environment]
+NODE_VERSION = "18"
+
 [env.production]
+routes = []
+
+[env.preview]
 routes = []

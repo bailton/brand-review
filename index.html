@@ -11,7 +11,7 @@
             background: #f5f7fa;
             color: #1e293b;
             padding: 20px;
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
@@ -46,19 +46,58 @@
         .btn-save { background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 4px; }
         .btn-save:hover { background: #2563eb; }
         .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
-        .btn-save.saved { background: #22c55e; }
 
-        .today-status { font-size: 0.85rem; color: #64748b; margin-top: 6px; }
-        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-        .history-item { background: #fafbfc; border-radius: 16px; overflow: hidden; border: 1px solid #eef2f6; transition: 0.2s; cursor: pointer; }
+        /* 历史画廊 - 固定4列网格 */
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 768px) {
+            .history-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .history-grid { grid-template-columns: 1fr; }
+        }
+
+        .history-item {
+            background: #fafbfc;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #eef2f6;
+            transition: 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
         .history-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-        .history-item img { width: 100%; height: 140px; object-fit: cover; background: #eef2f6; }
-        .history-item .info { padding: 14px 16px; }
-        .history-item .date { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
-        .history-item .good-preview { font-size: 0.85rem; color: #1e293b; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .history-item .improve-preview { font-size: 0.8rem; color: #64748b; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-        .delete-btn { background: none; border: none; color: #94a3b8; font-size: 0.75rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; margin-top: 6px; }
-        .delete-btn:hover { background: #fee2e2; color: #ef4444; }
+        .history-item img {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            background: #eef2f6;
+        }
+        .history-item .info { padding: 12px 14px; flex: 1; }
+        .history-item .date { font-size: 0.7rem; color: #94a3b8; font-weight: 500; }
+        .history-item .good-preview {
+            font-size: 0.8rem;
+            color: #1e293b;
+            margin-top: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .history-item .improve-preview {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 2px;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
         .empty-state { text-align: center; color: #94a3b8; padding: 40px 0; }
         .stats-bar { display: flex; gap: 24px; flex-wrap: wrap; padding: 4px 0; }
         .stats-bar .stat { display: flex; align-items: baseline; gap: 6px; font-size: 0.9rem; }
@@ -66,9 +105,11 @@
         .toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
         .btn-export { background: #e2e8f0; border: none; padding: 6px 16px; border-radius: 40px; font-size: 0.8rem; cursor: pointer; font-weight: 500; }
         .btn-export:hover { background: #cbd5e1; }
+
+        /* ========== Modal 弹窗 ========== */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
             display: flex; align-items: center; justify-content: center;
             z-index: 1000; padding: 20px;
             opacity: 0; pointer-events: none; transition: 0.25s;
@@ -78,15 +119,107 @@
             background: white; border-radius: 28px; max-width: 640px; width: 100%;
             max-height: 90vh; overflow-y: auto; padding: 28px;
             transform: scale(0.95); transition: 0.25s;
+            position: relative;
         }
         .modal-overlay.open .modal-content { transform: scale(1); }
-        .modal-content img { width: 100%; border-radius: 16px; margin-bottom: 16px; }
-        .modal-content .modal-good { background: #f0fdf4; padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid #22c55e; }
-        .modal-content .modal-improve { background: #fef2f2; padding: 12px 16px; border-radius: 12px; border-left: 4px solid #ef4444; }
-        .modal-content .modal-label { font-weight: 600; font-size: 0.8rem; color: #64748b; display: block; margin-bottom: 4px; }
-        .modal-close { display: block; margin: 16px 0 0 auto; background: #e2e8f0; border: none; padding: 8px 24px; border-radius: 40px; font-weight: 500; cursor: pointer; }
-        .modal-close:hover { background: #cbd5e1; }
 
+        /* 关闭按钮 - 右上角 */
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #94a3b8;
+            line-height: 1;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+        .modal-close:hover { background: #f1f5f9; color: #1e293b; }
+
+        .modal-content img {
+            width: 100%;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            margin-top: 8px;
+        }
+        .modal-content .modal-good {
+            background: #f0fdf4;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #22c55e;
+        }
+        .modal-content .modal-improve {
+            background: #fef2f2;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border-left: 4px solid #ef4444;
+            margin-bottom: 10px;
+        }
+        .modal-content .modal-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #64748b;
+            display: block;
+            margin-bottom: 4px;
+        }
+        /* 编辑态输入框 */
+        .modal-content .edit-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+            margin-top: 4px;
+            background: #fafbfc;
+            transition: 0.2s;
+        }
+        .modal-content .edit-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+        }
+
+        /* Modal 底部按钮：左删除，右编辑 */
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            gap: 12px;
+        }
+        .modal-footer .btn-delete {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .modal-footer .btn-delete:hover { background: #dc2626; }
+        .modal-footer .btn-edit {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .modal-footer .btn-edit:hover { background: #2563eb; }
+        .modal-footer .btn-edit.cancel { background: #94a3b8; }
+        .modal-footer .btn-edit.cancel:hover { background: #64748b; }
+
+        /* ========== 配置区 ========== */
         .config-card {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -109,10 +242,7 @@
             font-size: 0.85rem;
             font-family: inherit;
         }
-        .config-card input:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
+        .config-card input:focus { outline: none; border-color: #3b82f6; }
         .config-card .hint {
             font-size: 0.75rem;
             color: #94a3b8;
@@ -131,7 +261,7 @@
         }
         .btn-connect:hover { background: #16a34a; }
         .btn-connect:disabled { opacity: 0.6; cursor: not-allowed; }
-        
+
         .sync-status {
             font-size: 0.8rem;
             padding: 4px 12px;
@@ -143,7 +273,7 @@
         .sync-status.error { background: #fee2e2; color: #991b1b; }
 
         .footer { text-align: center; color: #94a3b8; font-size: 0.75rem; padding: 20px 0 10px; border-top: 1px solid #eef2f6; margin-top: 10px; }
-        
+
         .debug-hint {
             font-size: 0.8rem;
             padding: 8px 12px;
@@ -154,18 +284,9 @@
             background: #f1f5f9;
             color: #1e293b;
         }
-        .debug-hint.error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        .debug-hint.success {
-            background: #dcfce7;
-            color: #166534;
-        }
-        .debug-hint.loading {
-            background: #fef9c3;
-            color: #854d0e;
-        }
+        .debug-hint.error { background: #fee2e2; color: #991b1b; }
+        .debug-hint.success { background: #dcfce7; color: #166534; }
+        .debug-hint.loading { background: #fef9c3; color: #854d0e; }
     </style>
 </head>
 <body>
@@ -183,15 +304,12 @@
     <div class="config-card">
         <div class="config-row">
             <input type="text" id="binIdInput" placeholder="Bin ID（如：6789abc...）" />
-            <input type="password" id="apiKeyInput" placeholder="Access Key（可选）" />
+            <input type="password" id="apiKeyInput" placeholder="Access Key" />
             <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
                 {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
             </button>
         </div>
-        <div class="hint">
-            💡 去 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> 注册 → 创建 Bin → 获取 Bin ID<br>
-            🔑 Access Key 在 Account → API Keys 中创建（勾选全部权限）
-        </div>
+        <div class="hint">💡 去 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> 注册 → 创建 Bin → 获取 Bin ID 和 Access Key</div>
         <div class="debug-hint" id="debugHint">💡 请填写 Bin ID，然后点击"连接并同步"</div>
     </div>
 
@@ -216,10 +334,9 @@
                     <label>🔧 可以改善的地方</label>
                     <textarea v-model="improveInput" placeholder="信息层级、可读性、操作反馈…"></textarea>
                 </div>
-                <button class="btn-save" :class="{ saved: todaySaved }" @click="saveToday" :disabled="!canSave">
-                    {{ todaySaved ? '✅ 今日已打卡' : '💾 保存今日记录' }}
+                <button class="btn-save" @click="saveToday" :disabled="!canSave">
+                    💾 保存记录
                 </button>
-                <div class="today-status" v-if="todaySaved">✅ 今日已完成，明天继续加油！</div>
             </div>
         </div>
     </div>
@@ -229,6 +346,7 @@
         <div class="stats-bar">
             <span class="stat">📚 总记录 <span class="num">{{ totalRecords }}</span></span>
             <span class="stat">📅 本周 <span class="num">{{ weekCount }}</span></span>
+            <span class="stat">📌 今日 <span class="num">{{ todayCount }}</span></span>
         </div>
         <div class="toolbar">
             <button class="btn-export" @click="exportData">📤 导出备份</button>
@@ -252,20 +370,51 @@
                     <div class="date">{{ item.date }}</div>
                     <div class="good-preview">👍 {{ item.good || '未填写' }}</div>
                     <div class="improve-preview" v-if="item.improve">🔧 {{ item.improve }}</div>
-                    <button class="delete-btn" @click.stop="deleteRecord(item.id)">删除</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Modal -->
-    <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="modalOpen = false">
-        <div class="modal-content" v-if="modalItem">
-            <img :src="modalItem.imageData" alt="大图" />
-            <div class="modal-good"><span class="modal-label">👍 值得学习</span>{{ modalItem.good || '未填写' }}</div>
-            <div class="modal-improve" v-if="modalItem.improve"><span class="modal-label">🔧 可以改善</span>{{ modalItem.improve }}</div>
+    <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
+        <div class="modal-content">
+            <!-- 关闭按钮 - 右上角 -->
+            <button class="modal-close" @click="closeModal">✕</button>
+
+            <img :src="modalItem.imageData" alt="大图" v-if="modalItem" />
+
+            <!-- 值得学习 -->
+            <div class="modal-good" v-if="!modalEditing || modalEditField !== 'good'">
+                <span class="modal-label">👍 值得学习</span>
+                {{ modalItem.good || '未填写' }}
+            </div>
+            <div class="modal-good" v-else>
+                <span class="modal-label">👍 值得学习（编辑中）</span>
+                <textarea class="edit-textarea" v-model="modalEditGood" placeholder="值得学习的地方…"></textarea>
+            </div>
+
+            <!-- 可以改善 -->
+            <div class="modal-improve" v-if="!modalEditing || modalEditField !== 'improve'">
+                <span class="modal-label">🔧 可以改善</span>
+                {{ modalItem.improve || '未填写' }}
+            </div>
+            <div class="modal-improve" v-else>
+                <span class="modal-label">🔧 可以改善（编辑中）</span>
+                <textarea class="edit-textarea" v-model="modalEditImprove" placeholder="可以改善的地方…"></textarea>
+            </div>
+
             <div style="color:#94a3b8; font-size:0.8rem; margin-top:8px;">{{ modalItem.date }}</div>
-            <button class="modal-close" @click="modalOpen = false">关闭</button>
+
+            <!-- 底部：左删除，右编辑/保存 -->
+            <div class="modal-footer">
+                <button class="btn-delete" @click="deleteFromModal">🗑️ 删除</button>
+                <button class="btn-edit" :class="{ cancel: modalEditing }" @click="toggleEdit">
+                    {{ modalEditing ? '取消' : '✏️ 编辑' }}
+                </button>
+                <button class="btn-edit" v-if="modalEditing" @click="saveEdit" style="background:#22c55e;">
+                    💾 保存修改
+                </button>
+            </div>
         </div>
     </div>
 
@@ -289,22 +438,26 @@
                 imageFile: null,
                 goodInput: '',
                 improveInput: '',
-                todaySaved: false,
                 modalOpen: false,
-                modalItem: null
+                modalItem: null,
+                modalEditing: false,
+                modalEditField: null,
+                modalEditGood: '',
+                modalEditImprove: '',
+                modalTempId: null
             },
             computed: {
                 today() {
                     return new Date().toISOString().slice(0, 10);
                 },
-                todayRecord() {
-                    return this.records.find(r => r.date === this.today);
-                },
                 canSave() {
-                    return this.imagePreview && (this.goodInput.trim() || this.improveInput.trim()) && !this.todaySaved;
+                    return this.imagePreview && (this.goodInput.trim() || this.improveInput.trim());
                 },
                 totalRecords() {
                     return this.records.length;
+                },
+                todayCount() {
+                    return this.records.filter(r => r.date === this.today).length;
                 },
                 weekCount() {
                     const now = new Date();
@@ -379,21 +532,9 @@
                     reader.onload = (ev) => {
                         this.imagePreview = ev.target.result;
                         this.imageFile = file;
-                        this.loadTodayData();
                     };
                     reader.readAsDataURL(file);
                     e.target.value = '';
-                },
-                loadTodayData() {
-                    const record = this.todayRecord;
-                    if (record) {
-                        this.goodInput = record.good || '';
-                        this.improveInput = record.improve || '';
-                        this.todaySaved = true;
-                        if (!this.imagePreview) this.imagePreview = record.imageData;
-                    } else {
-                        this.todaySaved = false;
-                    }
                 },
                 saveToday() {
                     if (!this.canSave) return;
@@ -406,44 +547,80 @@
                         improve: this.improveInput.trim(),
                         createdAt: new Date().toISOString()
                     };
-                    const existIdx = this.records.findIndex(r => r.date === this.today);
-                    if (existIdx !== -1) this.records[existIdx] = record;
-                    else this.records.push(record);
-                    this.todaySaved = true;
+                    this.records.push(record);
+                    // 清空输入框，准备下一条
+                    this.imagePreview = null;
+                    this.imageFile = null;
+                    this.goodInput = '';
+                    this.improveInput = '';
                     this.saveToCloud();
                 },
-                deleteRecord(id) {
-                    if (!confirm('确定要删除吗？')) return;
-                    this.records = this.records.filter(r => r.id !== id);
-                    if (!this.records.some(r => r.date === this.today)) this.todaySaved = false;
-                    this.saveToCloud();
-                },
+
+                // ========== Modal ==========
                 openModal(item) {
                     this.modalItem = item;
+                    this.modalTempId = item.id;
+                    this.modalEditGood = item.good || '';
+                    this.modalEditImprove = item.improve || '';
+                    this.modalEditing = false;
+                    this.modalEditField = null;
                     this.modalOpen = true;
+                },
+                closeModal() {
+                    this.modalOpen = false;
+                    this.modalEditing = false;
+                    this.modalEditField = null;
+                },
+                toggleEdit() {
+                    if (this.modalEditing) {
+                        // 取消编辑，恢复原值
+                        this.modalEditing = false;
+                        this.modalEditField = null;
+                        this.modalEditGood = this.modalItem.good || '';
+                        this.modalEditImprove = this.modalItem.improve || '';
+                    } else {
+                        // 进入编辑模式
+                        this.modalEditing = true;
+                        this.modalEditField = 'good';
+                        this.modalEditGood = this.modalItem.good || '';
+                        this.modalEditImprove = this.modalItem.improve || '';
+                    }
+                },
+                saveEdit() {
+                    // 保存编辑后的内容
+                    const idx = this.records.findIndex(r => r.id === this.modalTempId);
+                    if (idx !== -1) {
+                        this.records[idx].good = this.modalEditGood.trim();
+                        this.records[idx].improve = this.modalEditImprove.trim();
+                        // 更新 modalItem 引用
+                        this.modalItem = this.records[idx];
+                        this.modalEditing = false;
+                        this.modalEditField = null;
+                        this.saveToCloud();
+                    }
+                },
+                deleteFromModal() {
+                    if (!confirm('确定要删除这条记录吗？')) return;
+                    this.records = this.records.filter(r => r.id !== this.modalTempId);
+                    this.closeModal();
+                    this.saveToCloud();
                 },
 
                 // ========== 云端同步 ==========
                 async saveToCloud() {
                     const binId = this.getBinId();
                     const apiKey = this.getApiKey();
-                    
                     if (!binId) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID';
                         this.updateDebug('❌ Bin ID 为空', 'error');
                         return;
                     }
-                    
                     this.syncStatus = 'loading';
                     this.updateDebug('⏳ 正在保存到云端...', 'loading');
-                    
                     try {
                         const headers = { 'Content-Type': 'application/json' };
-                        if (apiKey) {
-                            headers['X-Access-Key'] = apiKey;
-                        }
-                        
+                        if (apiKey) headers['X-Access-Key'] = apiKey;
                         const payload = { records: this.records };
                         const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
                             method: 'PUT',
@@ -456,6 +633,8 @@
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
                             localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
                             this.updateDebug('✅ 保存成功！', 'success');
+                            // 保存成功后重新加载，确保数据一致
+                            await this.loadFromCloud();
                         } else {
                             const err = await resp.json();
                             this.syncStatus = 'error';
@@ -473,57 +652,39 @@
                 async loadFromCloud() {
                     const binId = this.getBinId();
                     const apiKey = this.getApiKey();
-                    
                     if (!binId) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID';
                         this.updateDebug('❌ Bin ID 为空，请填写后重试', 'error');
                         return;
                     }
-                    
                     this.syncStatus = 'loading';
                     this.updateDebug(`⏳ 正在连接云端... (Bin ID: ${binId})`, 'loading');
-                    
                     try {
                         const headers = {};
-                        if (apiKey) {
-                            headers['X-Access-Key'] = apiKey;
-                        }
-                        
+                        if (apiKey) headers['X-Access-Key'] = apiKey;
                         const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
                             headers: headers
                         });
                         if (resp.ok) {
                             const data = await resp.json();
-                            
-                            // ===== 超级宽容的数据解析 =====
                             let recordData = null;
-                            
-                            // 情况1: data.record 直接是数组 []
                             if (data.record && Array.isArray(data.record)) {
                                 recordData = data.record;
-                            }
-                            // 情况2: data.record 是对象 { records: [] }
-                            else if (data.record && typeof data.record === 'object') {
+                            } else if (data.record && typeof data.record === 'object') {
                                 if (data.record.records && Array.isArray(data.record.records)) {
                                     recordData = data.record.records;
-                                }
-                                // 情况3: data.record 是对象，但可能直接就是数组（JSONBin 有时会这样）
-                                else if (Array.isArray(data.record)) {
+                                } else if (Array.isArray(data.record)) {
                                     recordData = data.record;
                                 }
-                            }
-                            // 情况4: data 本身就是数组（极少数情况）
-                            else if (Array.isArray(data)) {
+                            } else if (Array.isArray(data)) {
                                 recordData = data;
                             }
-                            
                             if (Array.isArray(recordData)) {
                                 this.records = recordData;
                                 localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
                                 this.syncStatus = 'success';
                                 this.syncMsg = '';
-                                this.checkToday();
                                 this.updateDebug(`✅ 连接成功！已加载 ${this.records.length} 条记录`, 'success');
                             } else if (recordData === null || recordData === undefined) {
                                 this.records = [];
@@ -561,14 +722,11 @@
                 async connectAndSync() {
                     const binId = this.getBinId();
                     const apiKey = this.getApiKey();
-                    
                     this.updateDebug(`Bin ID: ${binId || '空'} | Access Key: ${apiKey ? '已填 ✓' : '未填'}`, '');
-                    
                     if (!binId) {
                         alert('请填写 Bin ID');
                         return;
                     }
-                    
                     localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
                     await this.loadFromCloud();
                 },
@@ -579,7 +737,6 @@
                         const data = localStorage.getItem(STORAGE_KEY);
                         if (data) this.records = JSON.parse(data);
                     } catch (e) { this.records = []; }
-                    
                     try {
                         const config = localStorage.getItem(CONFIG_KEY);
                         if (config) {
@@ -590,16 +747,6 @@
                             if (keyEl) keyEl.value = c.apiKey || '';
                         }
                     } catch (e) {}
-                },
-
-                checkToday() {
-                    const record = this.todayRecord;
-                    if (record) {
-                        this.imagePreview = record.imageData;
-                        this.goodInput = record.good || '';
-                        this.improveInput = record.improve || '';
-                        this.todaySaved = true;
-                    }
                 },
 
                 // ========== 导入导出 ==========
@@ -619,53 +766,4 @@
                 handleImport(e) {
                     const file = e.target.files[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        try {
-                            const data = JSON.parse(ev.target.result);
-                            if (Array.isArray(data)) {
-                                if (confirm(`导入 ${data.length} 条记录，是否覆盖？`)) {
-                                    this.records = data;
-                                    this.saveToCloud();
-                                    this.checkToday();
-                                    alert('导入成功！');
-                                }
-                            } else {
-                                alert('文件格式不正确');
-                            }
-                        } catch (err) {
-                            alert('解析失败');
-                        }
-                    };
-                    reader.readAsText(file);
-                    e.target.value = '';
-                },
-                clearAll() {
-                    if (confirm('确定删除所有记录吗？')) {
-                        this.records = [];
-                        this.imagePreview = null;
-                        this.goodInput = '';
-                        this.improveInput = '';
-                        this.todaySaved = false;
-                        this.saveToCloud();
-                    }
-                }
-            },
-            mounted() {
-                this.loadFromLocal();
-                this.checkToday();
-
-                setTimeout(() => {
-                    const binId = this.getBinId();
-                    if (binId) {
-                        this.loadFromCloud();
-                    } else {
-                        this.updateDebug('💡 请填写 Bin ID，然后点击"连接并同步"', '');
-                    }
-                }, 500);
-            }
-        });
-    })();
-</script>
-</body>
-</html>
+                    const reader = new

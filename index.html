@@ -575,7 +575,7 @@
                     xhr.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
                     xhr.setRequestHeader('Content-Type', 'application/json');
                     if (apiKey) {
-                        xhr.setRequestHeader('X-Access-Key', apiKey);
+                        xhr.setRequestHeader('X-Master-Key', apiKey);
                     }
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {
@@ -622,7 +622,7 @@
                     var xhr = new XMLHttpRequest();
                     xhr.open('GET', 'https://api.jsonbin.io/v3/b/' + binId + '/latest', true);
                     if (apiKey) {
-                        xhr.setRequestHeader('X-Access-Key', apiKey);
+                        xhr.setRequestHeader('X-Master-Key', apiKey);
                     }
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {

@@ -766,4 +766,49 @@
                 handleImport(e) {
                     const file = e.target.files[0];
                     if (!file) return;
-                    const reader = new
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const data = JSON.parse(ev.target.result);
+                            if (Array.isArray(data)) {
+                                if (confirm(`导入 ${data.length} 条记录，是否覆盖？`)) {
+                                    this.records = data;
+                                    this.saveToCloud();
+                                    alert('导入成功！');
+                                }
+                            } else {
+                                alert('文件格式不正确');
+                            }
+                        } catch (err) {
+                            alert('解析失败');
+                        }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                },
+                clearAll() {
+                    if (confirm('确定删除所有记录吗？')) {
+                        this.records = [];
+                        this.imagePreview = null;
+                        this.goodInput = '';
+                        this.improveInput = '';
+                        this.saveToCloud();
+                    }
+                }
+            },
+            mounted() {
+                this.loadFromLocal();
+                setTimeout(() => {
+                    const binId = this.getBinId();
+                    if (binId) {
+                        this.loadFromCloud();
+                    } else {
+                        this.updateDebug('💡 请填写 Bin ID，然后点击"连接并同步"', '');
+                    }
+                }, 500);
+            }
+        });
+    })();
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-name = "brand-quiz1"
+name = "brand-review1"
 type = "static"
 
 [env.production]

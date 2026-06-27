@@ -1,0 +1,5 @@
+name = "brand-quiz1"
+type = "static"
+
+[env.production]
+routes = []

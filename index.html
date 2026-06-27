@@ -53,7 +53,6 @@
         .btn-save:hover { background: #2563eb; }
         .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        /* 历史画廊 */
         .history-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -103,7 +102,6 @@
         .btn-export { background: #e2e8f0; border: none; padding: 5px 14px; border-radius: 40px; font-size: 0.75rem; cursor: pointer; font-weight: 500; }
         .btn-export:hover { background: #cbd5e1; }
 
-        /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
@@ -189,7 +187,6 @@
         </div>
     </div>
 
-    <!-- 配置 -->
     <div class="config-card">
         <div class="config-row">
             <input type="text" id="binIdInput" placeholder="Bin ID" />
@@ -202,7 +199,6 @@
         <div class="debug-hint" id="debugHint">💡 请填写 Bin ID，然后点击"连接并同步"</div>
     </div>
 
-    <!-- 今日面板 -->
     <div class="card">
         <div class="card-title">📌 今日记录 · {{ today }}</div>
         <div class="today-grid">
@@ -254,7 +250,6 @@
         </div>
     </div>
 
-    <!-- 统计 + 排序 -->
     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
         <div class="stats-bar">
             <span class="stat">📚 总记录 <span class="num">{{ totalRecords }}</span></span>
@@ -297,7 +292,6 @@
         </div>
     </div>
 
-    <!-- 历史画廊 -->
     <div class="card">
         <div class="card-title">📅 历史记录</div>
         <div v-if="filteredRecords.length === 0" class="empty-state">
@@ -319,7 +313,6 @@
         </div>
     </div>
 
-    <!-- Modal -->
     <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
         <div class="modal-content" v-if="modalItem">
             <button class="modal-close" @click="closeModal">✕</button>
@@ -329,21 +322,17 @@
                 <span>🏷️ {{ modalItem.category || '其他' }}</span>
                 <span>📅 {{ modalItem.date }}</span>
             </div>
-            <div class="modal-good" v-if="!modalEditing || modalEditField !== 'good'">
+            <!-- 值得学习 -->
+            <div class="modal-good">
                 <span class="modal-label">👍 值得学习</span>
-                {{ modalItem.good || '未填写' }}
+                <div v-if="!modalEditing">{{ modalItem.good || '未填写' }}</div>
+                <textarea v-else class="edit-textarea" v-model="modalEditGood"></textarea>
             </div>
-            <div class="modal-good" v-else>
-                <span class="modal-label">👍 值得学习（编辑中）</span>
-                <textarea class="edit-textarea" v-model="modalEditGood"></textarea>
-            </div>
-            <div class="modal-improve" v-if="!modalEditing || modalEditField !== 'improve'">
+            <!-- 可以改善 -->
+            <div class="modal-improve">
                 <span class="modal-label">🔧 可以改善</span>
-                {{ modalItem.improve || '未填写' }}
-            </div>
-            <div class="modal-improve" v-else>
-                <span class="modal-label">🔧 可以改善（编辑中）</span>
-                <textarea class="edit-textarea" v-model="modalEditImprove"></textarea>
+                <div v-if="!modalEditing">{{ modalItem.improve || '未填写' }}</div>
+                <textarea v-else class="edit-textarea" v-model="modalEditImprove"></textarea>
             </div>
             <div class="modal-footer">
                 <button class="btn-delete" @click="deleteFromModal">🗑️ 删除</button>
@@ -381,7 +370,6 @@
                 modalOpen: false,
                 modalItem: null,
                 modalEditing: false,
-                modalEditField: null,
                 modalEditGood: '',
                 modalEditImprove: '',
                 modalTempId: null,
@@ -437,15 +425,12 @@
                 filteredRecords: function() {
                     var self = this;
                     var result = this.records.slice();
-                    // 筛选来源
                     if (this.filterSource !== '全部') {
                         result = result.filter(function(r) { return r.source === self.filterSource; });
                     }
-                    // 筛选品类
                     if (this.filterCategory !== '全部') {
                         result = result.filter(function(r) { return r.category === self.filterCategory; });
                     }
-                    // 排序
                     result.sort(function(a, b) {
                         if (self.sortOrder === 'newest') {
                             if (b.date !== a.date) return b.date.localeCompare(a.date);
@@ -533,21 +518,17 @@
                     this.modalEditGood = item.good || '';
                     this.modalEditImprove = item.improve || '';
                     this.modalEditing = false;
-                    this.modalEditField = null;
                     this.modalOpen = true;
                 },
                 closeModal: function() {
                     this.modalOpen = false;
                     this.modalEditing = false;
-                    this.modalEditField = null;
                 },
                 toggleEdit: function() {
                     this.modalEditing = true;
-                    this.modalEditField = 'good';
                 },
                 cancelEdit: function() {
                     this.modalEditing = false;
-                    this.modalEditField = null;
                     this.modalEditGood = this.modalItem.good || '';
                     this.modalEditImprove = this.modalItem.improve || '';
                 },
@@ -565,7 +546,6 @@
                         this.records[idx].improve = this.modalEditImprove.trim();
                         this.modalItem = this.records[idx];
                         this.modalEditing = false;
-                        this.modalEditField = null;
                         this.saveToCloud();
                     }
                 },
@@ -577,6 +557,7 @@
                     this.saveToCloud();
                 },
 
+                // ========== 使用 XMLHttpRequest 替代 fetch ==========
                 saveToCloud: function() {
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();
@@ -589,37 +570,41 @@
                     this.syncStatus = 'loading';
                     this.updateDebug('⏳ 正在保存...', 'loading');
                     var self = this;
-                    var headers = { 'Content-Type': 'application/json' };
-                    if (apiKey) headers['X-Access-Key'] = apiKey;
-                    var payload = { records: this.records };
-
-                    fetch('https://api.jsonbin.io/v3/b/' + binId, {
-                        method: 'PUT',
-                        headers: headers,
-                        body: JSON.stringify(payload)
-                    })
-                    .then(function(resp) {
-                        if (resp.ok) {
-                            self.syncStatus = 'success';
-                            self.syncMsg = '';
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
-                            self.updateDebug('✅ 保存成功！', 'success');
-                            return self.loadFromCloud();
-                        } else {
-                            return resp.json().then(function(err) {
+                    var payload = JSON.stringify({ records: this.records });
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    if (apiKey) {
+                        xhr.setRequestHeader('X-Access-Key', apiKey);
+                    }
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                self.syncStatus = 'success';
+                                self.syncMsg = '';
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
+                                self.updateDebug('✅ 保存成功！', 'success');
+                                // 保存后重新加载
+                                self.loadFromCloud();
+                            } else {
+                                var errMsg = '保存失败 (状态: ' + xhr.status + ')';
+                                try {
+                                    var errData = JSON.parse(xhr.responseText);
+                                    if (errData.message) errMsg = errData.message;
+                                } catch (e) {}
                                 self.syncStatus = 'error';
-                                self.syncMsg = err.message || '保存失败';
-                                self.updateDebug('❌ 保存失败: ' + (err.message || '未知错误'), 'error');
-                            });
+                                self.syncMsg = errMsg;
+                                self.updateDebug('❌ 保存失败: ' + errMsg, 'error');
+                            }
                         }
-                    })
-                    .catch(function(e) {
+                    };
+                    xhr.onerror = function() {
                         self.syncStatus = 'error';
                         self.syncMsg = '网络错误';
                         self.updateDebug('❌ 网络错误，请检查网络', 'error');
-                        console.warn(e);
-                    });
+                    };
+                    xhr.send(payload);
                 },
 
                 loadFromCloud: function() {
@@ -629,71 +614,78 @@
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID';
                         this.updateDebug('❌ Bin ID 为空', 'error');
-                        return Promise.resolve();
+                        return;
                     }
                     this.syncStatus = 'loading';
                     this.updateDebug('⏳ 连接云端...', 'loading');
                     var self = this;
-                    var headers = {};
-                    if (apiKey) headers['X-Access-Key'] = apiKey;
-
-                    return fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
-                        headers: headers
-                    })
-                    .then(function(resp) {
-                        if (resp.ok) {
-                            return resp.json().then(function(data) {
-                                var recordData = null;
-                                if (data.record && Array.isArray(data.record)) {
-                                    recordData = data.record;
-                                } else if (data.record && typeof data.record === 'object') {
-                                    if (data.record.records && Array.isArray(data.record.records)) {
-                                        recordData = data.record.records;
-                                    } else if (Array.isArray(data.record)) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', 'https://api.jsonbin.io/v3/b/' + binId + '/latest', true);
+                    if (apiKey) {
+                        xhr.setRequestHeader('X-Access-Key', apiKey);
+                    }
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                try {
+                                    var data = JSON.parse(xhr.responseText);
+                                    var recordData = null;
+                                    if (data.record && Array.isArray(data.record)) {
                                         recordData = data.record;
+                                    } else if (data.record && typeof data.record === 'object') {
+                                        if (data.record.records && Array.isArray(data.record.records)) {
+                                            recordData = data.record.records;
+                                        } else if (Array.isArray(data.record)) {
+                                            recordData = data.record;
+                                        }
+                                    } else if (Array.isArray(data)) {
+                                        recordData = data;
                                     }
-                                } else if (Array.isArray(data)) {
-                                    recordData = data;
-                                }
-                                if (Array.isArray(recordData)) {
-                                    self.records = recordData;
-                                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                    self.syncStatus = 'success';
-                                    self.syncMsg = '';
-                                    self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
-                                } else if (recordData === null || recordData === undefined) {
-                                    self.records = [];
-                                    self.syncStatus = 'success';
-                                    self.syncMsg = '';
-                                    self.updateDebug('✅ 连接成功，当前无数据', 'success');
-                                } else {
+                                    if (Array.isArray(recordData)) {
+                                        self.records = recordData;
+                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                        self.syncStatus = 'success';
+                                        self.syncMsg = '';
+                                        self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
+                                    } else if (recordData === null || recordData === undefined) {
+                                        self.records = [];
+                                        self.syncStatus = 'success';
+                                        self.syncMsg = '';
+                                        self.updateDebug('✅ 连接成功，当前无数据', 'success');
+                                    } else {
+                                        self.syncStatus = 'error';
+                                        self.syncMsg = '数据格式异常';
+                                        self.updateDebug('❌ 数据格式异常', 'error');
+                                    }
+                                } catch (e) {
                                     self.syncStatus = 'error';
-                                    self.syncMsg = '数据格式异常';
-                                    self.updateDebug('❌ 数据格式异常', 'error');
+                                    self.syncMsg = '解析数据失败';
+                                    self.updateDebug('❌ 解析数据失败', 'error');
                                 }
-                            });
-                        } else {
-                            if (resp.status === 404) {
+                            } else if (xhr.status === 404) {
                                 self.records = [];
                                 self.syncStatus = 'success';
                                 self.syncMsg = '';
                                 self.updateDebug('✅ Bin 为空，初始化完成', 'success');
-                                return self.saveToCloud();
+                                self.saveToCloud();
                             } else {
-                                return resp.json().then(function(err) {
-                                    self.syncStatus = 'error';
-                                    self.syncMsg = err.message || '加载失败';
-                                    self.updateDebug('❌ 连接失败: ' + (err.message || '未知错误'), 'error');
-                                });
+                                var errMsg = '加载失败 (状态: ' + xhr.status + ')';
+                                try {
+                                    var errData = JSON.parse(xhr.responseText);
+                                    if (errData.message) errMsg = errData.message;
+                                } catch (e) {}
+                                self.syncStatus = 'error';
+                                self.syncMsg = errMsg;
+                                self.updateDebug('❌ 连接失败: ' + errMsg, 'error');
                             }
                         }
-                    })
-                    .catch(function(e) {
+                    };
+                    xhr.onerror = function() {
                         self.syncStatus = 'error';
                         self.syncMsg = '网络错误';
                         self.updateDebug('❌ 网络错误，请检查网络', 'error');
-                        console.warn(e);
-                    });
+                    };
+                    xhr.send();
                 },
 
                 connectAndSync: function() {

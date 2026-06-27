@@ -193,6 +193,7 @@
             align-items: center;
             margin-top: 16px;
             gap: 12px;
+            flex-wrap: wrap;
         }
         .modal-footer .btn-delete {
             background: #ef4444;
@@ -218,6 +219,17 @@
         .modal-footer .btn-edit:hover { background: #2563eb; }
         .modal-footer .btn-edit.cancel { background: #94a3b8; }
         .modal-footer .btn-edit.cancel:hover { background: #64748b; }
+        .modal-footer .btn-save-edit {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .modal-footer .btn-save-edit:hover { background: #16a34a; }
 
         /* ========== 配置区 ========== */
         .config-card {
@@ -377,11 +389,11 @@
 
     <!-- Modal -->
     <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
-        <div class="modal-content">
+        <div class="modal-content" v-if="modalItem">
             <!-- 关闭按钮 - 右上角 -->
             <button class="modal-close" @click="closeModal">✕</button>
 
-            <img :src="modalItem.imageData" alt="大图" v-if="modalItem" />
+            <img :src="modalItem.imageData" alt="大图" />
 
             <!-- 值得学习 -->
             <div class="modal-good" v-if="!modalEditing || modalEditField !== 'good'">
@@ -405,15 +417,14 @@
 
             <div style="color:#94a3b8; font-size:0.8rem; margin-top:8px;">{{ modalItem.date }}</div>
 
-            <!-- 底部：左删除，右编辑/保存 -->
+            <!-- 底部：左删除，右编辑 -->
             <div class="modal-footer">
                 <button class="btn-delete" @click="deleteFromModal">🗑️ 删除</button>
-                <button class="btn-edit" :class="{ cancel: modalEditing }" @click="toggleEdit">
-                    {{ modalEditing ? '取消' : '✏️ 编辑' }}
-                </button>
-                <button class="btn-edit" v-if="modalEditing" @click="saveEdit" style="background:#22c55e;">
-                    💾 保存修改
-                </button>
+                <div>
+                    <button v-if="!modalEditing" class="btn-edit" @click="toggleEdit">✏️ 编辑</button>
+                    <button v-if="modalEditing" class="btn-edit cancel" @click="cancelEdit">取消</button>
+                    <button v-if="modalEditing" class="btn-save-edit" @click="saveEdit">💾 保存修改</button>
+                </div>
             </div>
         </div>
     </div>
@@ -424,8 +435,8 @@
 <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
 <script>
     (function() {
-        const STORAGE_KEY = 'market_diary_records';
-        const CONFIG_KEY = 'market_diary_config';
+        var STORAGE_KEY = 'market_diary_records';
+        var CONFIG_KEY = 'market_diary_config';
 
         new Vue({
             el: '#app',
@@ -447,54 +458,64 @@
                 modalTempId: null
             },
             computed: {
-                today() {
+                today: function() {
                     return new Date().toISOString().slice(0, 10);
                 },
-                canSave() {
+                canSave: function() {
                     return this.imagePreview && (this.goodInput.trim() || this.improveInput.trim());
                 },
-                totalRecords() {
+                totalRecords: function() {
                     return this.records.length;
                 },
-                todayCount() {
-                    return this.records.filter(r => r.date === this.today).length;
+                todayCount: function() {
+                    var self = this;
+                    return this.records.filter(function(r) { return r.date === self.today; }).length;
                 },
-                weekCount() {
-                    const now = new Date();
-                    const startOfWeek = new Date(now);
+                weekCount: function() {
+                    var now = new Date();
+                    var startOfWeek = new Date(now);
                     startOfWeek.setDate(now.getDate() - now.getDay());
                     startOfWeek.setHours(0,0,0,0);
-                    return this.records.filter(r => {
-                        const d = new Date(r.date);
+                    var self = this;
+                    return this.records.filter(function(r) {
+                        var d = new Date(r.date);
                         return d >= startOfWeek;
                     }).length;
                 },
-                streak() {
+                streak: function() {
                     if (this.records.length === 0) return 0;
-                    const dates = this.records.map(r => r.date).sort();
-                    const todayStr = this.today;
-                    let hasToday = dates.includes(todayStr);
-                    let checkDate = hasToday ? todayStr : this.getYesterday();
-                    if (!hasToday && !dates.includes(checkDate)) return 0;
-                    let current = new Date(checkDate);
-                    let count = 0;
+                    var dates = this.records.map(function(r) { return r.date; }).sort();
+                    var todayStr = this.today;
+                    var hasToday = dates.indexOf(todayStr) !== -1;
+                    var checkDate = hasToday ? todayStr : this.getYesterday();
+                    if (!hasToday && dates.indexOf(checkDate) === -1) return 0;
+                    var current = new Date(checkDate);
+                    var count = 0;
                     while (true) {
-                        const ds = current.toISOString().slice(0, 10);
-                        if (dates.includes(ds)) { count++; current.setDate(current.getDate() - 1); }
-                        else break;
+                        var ds = current.toISOString().slice(0, 10);
+                        if (dates.indexOf(ds) !== -1) {
+                            count++;
+                            current.setDate(current.getDate() - 1);
+                        } else {
+                            break;
+                        }
                     }
                     return count;
                 },
-                sortedRecords() {
-                    return [...this.records].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+                sortedRecords: function() {
+                    var self = this;
+                    return this.records.slice().sort(function(a, b) {
+                        if (b.date !== a.date) return b.date.localeCompare(a.date);
+                        return b.id.localeCompare(a.id);
+                    });
                 },
-                syncStatusClass() {
+                syncStatusClass: function() {
                     if (this.syncStatus === 'success') return 'success';
                     if (this.syncStatus === 'loading') return 'loading';
                     if (this.syncStatus === 'error') return 'error';
                     return '';
                 },
-                syncStatusText() {
+                syncStatusText: function() {
                     if (this.syncStatus === 'success') return '✅ 已同步';
                     if (this.syncStatus === 'loading') return '⏳ 同步中';
                     if (this.syncStatus === 'error') return '❌ ' + this.syncMsg;
@@ -502,43 +523,44 @@
                 }
             },
             methods: {
-                getYesterday() {
-                    const d = new Date();
+                getYesterday: function() {
+                    var d = new Date();
                     d.setDate(d.getDate() - 1);
                     return d.toISOString().slice(0, 10);
                 },
-                getBinId() {
-                    const el = document.getElementById('binIdInput');
+                getBinId: function() {
+                    var el = document.getElementById('binIdInput');
                     return el ? el.value.trim() : '';
                 },
-                getApiKey() {
-                    const el = document.getElementById('apiKeyInput');
+                getApiKey: function() {
+                    var el = document.getElementById('apiKeyInput');
                     return el ? el.value.trim() : '';
                 },
-                updateDebug(msg, type) {
-                    const el = document.getElementById('debugHint');
+                updateDebug: function(msg, type) {
+                    var el = document.getElementById('debugHint');
                     if (el) {
                         el.textContent = msg;
                         el.className = 'debug-hint' + (type ? ' ' + type : '');
                     }
                 },
-                triggerUpload() {
+                triggerUpload: function() {
                     document.getElementById('fileInput').click();
                 },
-                handleFile(e) {
-                    const file = e.target.files[0];
+                handleFile: function(e) {
+                    var file = e.target.files[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        this.imagePreview = ev.target.result;
-                        this.imageFile = file;
+                    var reader = new FileReader();
+                    var self = this;
+                    reader.onload = function(ev) {
+                        self.imagePreview = ev.target.result;
+                        self.imageFile = file;
                     };
                     reader.readAsDataURL(file);
                     e.target.value = '';
                 },
-                saveToday() {
+                saveToday: function() {
                     if (!this.canSave) return;
-                    const record = {
+                    var record = {
                         id: this.today + '-' + String(Date.now()).slice(-4),
                         date: this.today,
                         imageData: this.imagePreview,
@@ -548,7 +570,6 @@
                         createdAt: new Date().toISOString()
                     };
                     this.records.push(record);
-                    // 清空输入框，准备下一条
                     this.imagePreview = null;
                     this.imageFile = null;
                     this.goodInput = '';
@@ -557,7 +578,7 @@
                 },
 
                 // ========== Modal ==========
-                openModal(item) {
+                openModal: function(item) {
                     this.modalItem = item;
                     this.modalTempId = item.id;
                     this.modalEditGood = item.good || '';
@@ -566,50 +587,51 @@
                     this.modalEditField = null;
                     this.modalOpen = true;
                 },
-                closeModal() {
+                closeModal: function() {
                     this.modalOpen = false;
                     this.modalEditing = false;
                     this.modalEditField = null;
                 },
-                toggleEdit() {
-                    if (this.modalEditing) {
-                        // 取消编辑，恢复原值
-                        this.modalEditing = false;
-                        this.modalEditField = null;
-                        this.modalEditGood = this.modalItem.good || '';
-                        this.modalEditImprove = this.modalItem.improve || '';
-                    } else {
-                        // 进入编辑模式
-                        this.modalEditing = true;
-                        this.modalEditField = 'good';
-                        this.modalEditGood = this.modalItem.good || '';
-                        this.modalEditImprove = this.modalItem.improve || '';
-                    }
+                toggleEdit: function() {
+                    this.modalEditing = true;
+                    this.modalEditField = 'good';
+                    this.modalEditGood = this.modalItem.good || '';
+                    this.modalEditImprove = this.modalItem.improve || '';
                 },
-                saveEdit() {
-                    // 保存编辑后的内容
-                    const idx = this.records.findIndex(r => r.id === this.modalTempId);
+                cancelEdit: function() {
+                    this.modalEditing = false;
+                    this.modalEditField = null;
+                },
+                saveEdit: function() {
+                    var self = this;
+                    var idx = -1;
+                    for (var i = 0; i < this.records.length; i++) {
+                        if (this.records[i].id === this.modalTempId) {
+                            idx = i;
+                            break;
+                        }
+                    }
                     if (idx !== -1) {
                         this.records[idx].good = this.modalEditGood.trim();
                         this.records[idx].improve = this.modalEditImprove.trim();
-                        // 更新 modalItem 引用
                         this.modalItem = this.records[idx];
                         this.modalEditing = false;
                         this.modalEditField = null;
                         this.saveToCloud();
                     }
                 },
-                deleteFromModal() {
+                deleteFromModal: function() {
                     if (!confirm('确定要删除这条记录吗？')) return;
-                    this.records = this.records.filter(r => r.id !== this.modalTempId);
+                    var self = this;
+                    this.records = this.records.filter(function(r) { return r.id !== self.modalTempId; });
                     this.closeModal();
                     this.saveToCloud();
                 },
 
                 // ========== 云端同步 ==========
-                async saveToCloud() {
-                    const binId = this.getBinId();
-                    const apiKey = this.getApiKey();
+                saveToCloud: function() {
+                    var binId = this.getBinId();
+                    var apiKey = this.getApiKey();
                     if (!binId) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID';
@@ -618,162 +640,167 @@
                     }
                     this.syncStatus = 'loading';
                     this.updateDebug('⏳ 正在保存到云端...', 'loading');
-                    try {
-                        const headers = { 'Content-Type': 'application/json' };
-                        if (apiKey) headers['X-Access-Key'] = apiKey;
-                        const payload = { records: this.records };
-                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-                            method: 'PUT',
-                            headers: headers,
-                            body: JSON.stringify(payload)
-                        });
+                    var self = this;
+                    var headers = { 'Content-Type': 'application/json' };
+                    if (apiKey) headers['X-Access-Key'] = apiKey;
+                    var payload = { records: this.records };
+                    fetch('https://api.jsonbin.io/v3/b/' + binId, {
+                        method: 'PUT',
+                        headers: headers,
+                        body: JSON.stringify(payload)
+                    })
+                    .then(function(resp) {
                         if (resp.ok) {
-                            this.syncStatus = 'success';
-                            this.syncMsg = '';
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
-                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
-                            this.updateDebug('✅ 保存成功！', 'success');
-                            // 保存成功后重新加载，确保数据一致
-                            await this.loadFromCloud();
+                            self.syncStatus = 'success';
+                            self.syncMsg = '';
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
+                            self.updateDebug('✅ 保存成功！', 'success');
+                            return self.loadFromCloud();
                         } else {
-                            const err = await resp.json();
-                            this.syncStatus = 'error';
-                            this.syncMsg = err.message || '保存失败';
-                            this.updateDebug('❌ 保存失败: ' + (err.message || '未知错误'), 'error');
+                            return resp.json().then(function(err) {
+                                self.syncStatus = 'error';
+                                self.syncMsg = err.message || '保存失败';
+                                self.updateDebug('❌ 保存失败: ' + (err.message || '未知错误'), 'error');
+                            });
                         }
-                    } catch (e) {
-                        this.syncStatus = 'error';
-                        this.syncMsg = '网络错误';
-                        this.updateDebug('❌ 网络错误，请检查网络连接', 'error');
+                    })
+                    .catch(function(e) {
+                        self.syncStatus = 'error';
+                        self.syncMsg = '网络错误';
+                        self.updateDebug('❌ 网络错误，请检查网络连接', 'error');
                         console.warn(e);
-                    }
+                    });
                 },
 
-                async loadFromCloud() {
-                    const binId = this.getBinId();
-                    const apiKey = this.getApiKey();
+                loadFromCloud: function() {
+                    var binId = this.getBinId();
+                    var apiKey = this.getApiKey();
                     if (!binId) {
                         this.syncStatus = 'error';
                         this.syncMsg = '请先配置 Bin ID';
                         this.updateDebug('❌ Bin ID 为空，请填写后重试', 'error');
-                        return;
+                        return Promise.resolve();
                     }
                     this.syncStatus = 'loading';
-                    this.updateDebug(`⏳ 正在连接云端... (Bin ID: ${binId})`, 'loading');
-                    try {
-                        const headers = {};
-                        if (apiKey) headers['X-Access-Key'] = apiKey;
-                        const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
-                            headers: headers
-                        });
+                    this.updateDebug('⏳ 正在连接云端... (Bin ID: ' + binId + ')', 'loading');
+                    var self = this;
+                    var headers = {};
+                    if (apiKey) headers['X-Access-Key'] = apiKey;
+                    return fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+                        headers: headers
+                    })
+                    .then(function(resp) {
                         if (resp.ok) {
-                            const data = await resp.json();
-                            let recordData = null;
-                            if (data.record && Array.isArray(data.record)) {
-                                recordData = data.record;
-                            } else if (data.record && typeof data.record === 'object') {
-                                if (data.record.records && Array.isArray(data.record.records)) {
-                                    recordData = data.record.records;
-                                } else if (Array.isArray(data.record)) {
+                            return resp.json().then(function(data) {
+                                var recordData = null;
+                                if (data.record && Array.isArray(data.record)) {
                                     recordData = data.record;
+                                } else if (data.record && typeof data.record === 'object') {
+                                    if (data.record.records && Array.isArray(data.record.records)) {
+                                        recordData = data.record.records;
+                                    } else if (Array.isArray(data.record)) {
+                                        recordData = data.record;
+                                    }
+                                } else if (Array.isArray(data)) {
+                                    recordData = data;
                                 }
-                            } else if (Array.isArray(data)) {
-                                recordData = data;
-                            }
-                            if (Array.isArray(recordData)) {
-                                this.records = recordData;
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.records));
-                                this.syncStatus = 'success';
-                                this.syncMsg = '';
-                                this.updateDebug(`✅ 连接成功！已加载 ${this.records.length} 条记录`, 'success');
-                            } else if (recordData === null || recordData === undefined) {
-                                this.records = [];
-                                this.syncStatus = 'success';
-                                this.syncMsg = '';
-                                this.updateDebug('✅ 连接成功！当前云端无数据，可以开始记录', 'success');
-                            } else {
-                                console.warn('未知数据格式:', data);
-                                this.syncStatus = 'error';
-                                this.syncMsg = '数据格式异常';
-                                this.updateDebug('❌ 数据格式异常，请检查 Bin 是否正确', 'error');
-                            }
+                                if (Array.isArray(recordData)) {
+                                    self.records = recordData;
+                                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                    self.syncStatus = 'success';
+                                    self.syncMsg = '';
+                                    self.updateDebug('✅ 连接成功！已加载 ' + self.records.length + ' 条记录', 'success');
+                                } else if (recordData === null || recordData === undefined) {
+                                    self.records = [];
+                                    self.syncStatus = 'success';
+                                    self.syncMsg = '';
+                                    self.updateDebug('✅ 连接成功！当前云端无数据，可以开始记录', 'success');
+                                } else {
+                                    console.warn('未知数据格式:', data);
+                                    self.syncStatus = 'error';
+                                    self.syncMsg = '数据格式异常';
+                                    self.updateDebug('❌ 数据格式异常，请检查 Bin 是否正确', 'error');
+                                }
+                            });
                         } else {
                             if (resp.status === 404) {
-                                this.records = [];
-                                this.syncStatus = 'success';
-                                this.syncMsg = '';
-                                this.updateDebug('✅ Bin 为空，自动初始化完成', 'success');
-                                await this.saveToCloud();
+                                self.records = [];
+                                self.syncStatus = 'success';
+                                self.syncMsg = '';
+                                self.updateDebug('✅ Bin 为空，自动初始化完成', 'success');
+                                return self.saveToCloud();
                             } else {
-                                const err = await resp.json();
-                                this.syncStatus = 'error';
-                                this.syncMsg = err.message || '加载失败';
-                                this.updateDebug('❌ 连接失败: ' + (err.message || '未知错误'), 'error');
+                                return resp.json().then(function(err) {
+                                    self.syncStatus = 'error';
+                                    self.syncMsg = err.message || '加载失败';
+                                    self.updateDebug('❌ 连接失败: ' + (err.message || '未知错误'), 'error');
+                                });
                             }
                         }
-                    } catch (e) {
-                        this.syncStatus = 'error';
-                        this.syncMsg = '网络错误';
-                        this.updateDebug('❌ 网络错误，请检查网络连接后重试', 'error');
+                    })
+                    .catch(function(e) {
+                        self.syncStatus = 'error';
+                        self.syncMsg = '网络错误';
+                        self.updateDebug('❌ 网络错误，请检查网络连接后重试', 'error');
                         console.warn(e);
-                    }
+                    });
                 },
 
-                async connectAndSync() {
-                    const binId = this.getBinId();
-                    const apiKey = this.getApiKey();
-                    this.updateDebug(`Bin ID: ${binId || '空'} | Access Key: ${apiKey ? '已填 ✓' : '未填'}`, '');
+                connectAndSync: function() {
+                    var binId = this.getBinId();
+                    var apiKey = this.getApiKey();
+                    this.updateDebug('Bin ID: ' + (binId || '空') + ' | Access Key: ' + (apiKey ? '已填 ✓' : '未填'), '');
                     if (!binId) {
                         alert('请填写 Bin ID');
                         return;
                     }
-                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId, apiKey }));
-                    await this.loadFromCloud();
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
+                    this.loadFromCloud();
                 },
 
-                // ========== 本地缓存 ==========
-                loadFromLocal() {
+                loadFromLocal: function() {
                     try {
-                        const data = localStorage.getItem(STORAGE_KEY);
+                        var data = localStorage.getItem(STORAGE_KEY);
                         if (data) this.records = JSON.parse(data);
                     } catch (e) { this.records = []; }
                     try {
-                        const config = localStorage.getItem(CONFIG_KEY);
+                        var config = localStorage.getItem(CONFIG_KEY);
                         if (config) {
-                            const c = JSON.parse(config);
-                            const binEl = document.getElementById('binIdInput');
-                            const keyEl = document.getElementById('apiKeyInput');
+                            var c = JSON.parse(config);
+                            var binEl = document.getElementById('binIdInput');
+                            var keyEl = document.getElementById('apiKeyInput');
                             if (binEl) binEl.value = c.binId || '';
                             if (keyEl) keyEl.value = c.apiKey || '';
                         }
                     } catch (e) {}
                 },
 
-                // ========== 导入导出 ==========
-                exportData() {
-                    const data = JSON.stringify(this.records, null, 2);
-                    const blob = new Blob([data], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
+                exportData: function() {
+                    var data = JSON.stringify(this.records, null, 2);
+                    var blob = new Blob([data], { type: 'application/json' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
                     a.href = url;
-                    a.download = `市场日记_${this.today}.json`;
+                    a.download = '市场日记_' + this.today + '.json';
                     a.click();
                     URL.revokeObjectURL(url);
                 },
-                importData() {
+                importData: function() {
                     document.getElementById('importInput').click();
                 },
-                handleImport(e) {
-                    const file = e.target.files[0];
+                handleImport: function(e) {
+                    var file = e.target.files[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
+                    var reader = new FileReader();
+                    var self = this;
+                    reader.onload = function(ev) {
                         try {
-                            const data = JSON.parse(ev.target.result);
+                            var data = JSON.parse(ev.target.result);
                             if (Array.isArray(data)) {
-                                if (confirm(`导入 ${data.length} 条记录，是否覆盖？`)) {
-                                    this.records = data;
-                                    this.saveToCloud();
+                                if (confirm('导入 ' + data.length + ' 条记录，是否覆盖？')) {
+                                    self.records = data;
+                                    self.saveToCloud();
                                     alert('导入成功！');
                                 }
                             } else {
@@ -786,7 +813,7 @@
                     reader.readAsText(file);
                     e.target.value = '';
                 },
-                clearAll() {
+                clearAll: function() {
                     if (confirm('确定删除所有记录吗？')) {
                         this.records = [];
                         this.imagePreview = null;
@@ -796,14 +823,15 @@
                     }
                 }
             },
-            mounted() {
+            mounted: function() {
                 this.loadFromLocal();
-                setTimeout(() => {
-                    const binId = this.getBinId();
+                var self = this;
+                setTimeout(function() {
+                    var binId = self.getBinId();
                     if (binId) {
-                        this.loadFromCloud();
+                        self.loadFromCloud();
                     } else {
-                        this.updateDebug('💡 请填写 Bin ID，然后点击"连接并同步"', '');
+                        self.updateDebug('💡 请填写 Bin ID，然后点击"连接并同步"', '');
                     }
                 }, 500);
             }

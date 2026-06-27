@@ -190,12 +190,12 @@
     <div class="config-card">
         <div class="config-row">
             <input type="text" id="binIdInput" placeholder="Bin ID" />
-            <input type="password" id="apiKeyInput" placeholder="Access Key" />
+            <input type="password" id="apiKeyInput" placeholder="Master Key" />
             <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
                 {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
             </button>
         </div>
-        <div class="hint">💡 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> → 创建 Bin → 获取 Bin ID 和 Access Key</div>
+        <div class="hint">💡 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> → 创建 Bin → 获取 Bin ID 和 Master Key（就是 Access Key）</div>
         <div class="debug-hint" id="debugHint">💡 请填写 Bin ID，然后点击"连接并同步"</div>
     </div>
 
@@ -322,13 +322,11 @@
                 <span>🏷️ {{ modalItem.category || '其他' }}</span>
                 <span>📅 {{ modalItem.date }}</span>
             </div>
-            <!-- 值得学习 -->
             <div class="modal-good">
                 <span class="modal-label">👍 值得学习</span>
                 <div v-if="!modalEditing">{{ modalItem.good || '未填写' }}</div>
                 <textarea v-else class="edit-textarea" v-model="modalEditGood"></textarea>
             </div>
-            <!-- 可以改善 -->
             <div class="modal-improve">
                 <span class="modal-label">🔧 可以改善</span>
                 <div v-if="!modalEditing">{{ modalItem.improve || '未填写' }}</div>
@@ -557,7 +555,7 @@
                     this.saveToCloud();
                 },
 
-                // ========== 使用 XMLHttpRequest 替代 fetch ==========
+                // ★★★ 核心修改：使用 X-Master-Key ★★★
                 saveToCloud: function() {
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();
@@ -567,6 +565,12 @@
                         this.updateDebug('❌ Bin ID 为空', 'error');
                         return;
                     }
+                    if (!apiKey) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 Master Key';
+                        this.updateDebug('❌ Master Key 为空', 'error');
+                        return;
+                    }
                     this.syncStatus = 'loading';
                     this.updateDebug('⏳ 正在保存...', 'loading');
                     var self = this;
@@ -574,9 +578,7 @@
                     var xhr = new XMLHttpRequest();
                     xhr.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
                     xhr.setRequestHeader('Content-Type', 'application/json');
-                    if (apiKey) {
-                        xhr.setRequestHeader('X-Master-Key', apiKey);
-                    }
+                    xhr.setRequestHeader('X-Master-Key', apiKey);  // ★ 改成 X-Master-Key
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {
                             if (xhr.status >= 200 && xhr.status < 300) {
@@ -585,7 +587,6 @@
                                 localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
                                 localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
                                 self.updateDebug('✅ 保存成功！', 'success');
-                                // 保存后重新加载
                                 self.loadFromCloud();
                             } else {
                                 var errMsg = '保存失败 (状态: ' + xhr.status + ')';
@@ -616,14 +617,18 @@
                         this.updateDebug('❌ Bin ID 为空', 'error');
                         return;
                     }
+                    if (!apiKey) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 Master Key';
+                        this.updateDebug('❌ Master Key 为空', 'error');
+                        return;
+                    }
                     this.syncStatus = 'loading';
                     this.updateDebug('⏳ 连接云端...', 'loading');
                     var self = this;
                     var xhr = new XMLHttpRequest();
                     xhr.open('GET', 'https://api.jsonbin.io/v3/b/' + binId + '/latest', true);
-                    if (apiKey) {
-                        xhr.setRequestHeader('X-Master-Key', apiKey);
-                    }
+                    xhr.setRequestHeader('X-Master-Key', apiKey);  // ★ 改成 X-Master-Key
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {
                             if (xhr.status >= 200 && xhr.status < 300) {
@@ -694,6 +699,10 @@
                     this.updateDebug('Bin ID: ' + (binId || '空') + ' | Key: ' + (apiKey ? '已填 ✓' : '未填'), '');
                     if (!binId) {
                         alert('请填写 Bin ID');
+                        return;
+                    }
+                    if (!apiKey) {
+                        alert('请填写 Master Key（你的 Access Key）');
                         return;
                     }
                     localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
@@ -769,10 +778,11 @@
                 var self = this;
                 setTimeout(function() {
                     var binId = self.getBinId();
-                    if (binId) {
+                    var apiKey = self.getApiKey();
+                    if (binId && apiKey) {
                         self.loadFromCloud();
                     } else {
-                        self.updateDebug('💡 请填写 Bin ID 并连接', '');
+                        self.updateDebug('💡 请填写 Bin ID 和 Master Key，然后点击"连接并同步"', '');
                     }
                 }, 500);
             }

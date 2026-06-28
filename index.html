@@ -102,7 +102,6 @@
         .btn-export { background: #e2e8f0; border: none; padding: 5px 14px; border-radius: 40px; font-size: 0.75rem; cursor: pointer; font-weight: 500; }
         .btn-export:hover { background: #cbd5e1; }
 
-        /* ========== Modal 左图右文 ========== */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
@@ -120,7 +119,6 @@
         }
         .modal-overlay.open .modal-content { transform: scale(1); }
 
-        /* ✕ 关闭按钮 - 右上角 */
         .modal-close {
             position: absolute;
             top: 12px;
@@ -137,7 +135,6 @@
         }
         .modal-close:hover { background: #f1f5f9; color: #1e293b; }
 
-        /* 左图右文布局 */
         .modal-body {
             display: flex;
             gap: 24px;
@@ -215,7 +212,6 @@
             background: white;
         }
 
-        /* Modal 底部按钮 */
         .modal-footer {
             display: flex;
             justify-content: flex-end;
@@ -439,40 +435,29 @@
         </div>
     </div>
 
-    <!-- ========== Modal 左图右文，✕ 在右上角 ========== -->
     <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
         <div class="modal-content" v-if="modalItem">
-            <!-- ✕ 关闭按钮 - 右上角 -->
             <button class="modal-close" @click="closeModal">✕</button>
-
             <div class="modal-body">
-                <!-- 左侧：图片 -->
                 <div class="modal-image">
                     <img :src="modalItem.imageData" alt="大图" />
                 </div>
-                <!-- 右侧：所有文字信息 -->
                 <div class="modal-info">
                     <div class="modal-date">📅 {{ modalItem.date }}</div>
                     <div class="modal-tags">
                         <span>📂 {{ modalItem.source || '其他' }}</span>
                         <span>🏷️ {{ modalItem.category || '其他' }}</span>
                     </div>
-
-                    <!-- 值得学习 -->
                     <div class="modal-good">
                         <span class="modal-label">👍 值得学习</span>
                         <div v-if="!modalEditing">{{ modalItem.good || '未填写' }}</div>
                         <textarea v-else class="edit-textarea" v-model="modalEditGood"></textarea>
                     </div>
-
-                    <!-- 可以改善 -->
                     <div class="modal-improve">
                         <span class="modal-label">🔧 可以改善</span>
                         <div v-if="!modalEditing">{{ modalItem.improve || '未填写' }}</div>
                         <textarea v-else class="edit-textarea" v-model="modalEditImprove"></textarea>
                     </div>
-
-                    <!-- 底部按钮：右下角 -->
                     <div class="modal-footer">
                         <button class="btn-delete" @click="deleteFromModal">🗑️ 删除</button>
                         <div>
@@ -663,7 +648,6 @@
                         createdAt: new Date().toISOString()
                     };
                     this.records.push(record);
-                    // 保存后不清空输入框，让用户看到已保存的内容
                     this.imagePreview = null;
                     this.imageFile = null;
                     this.goodInput = '';
@@ -767,7 +751,6 @@
                     xhr.send(payload);
                 },
 
-                // ========== 修复：同步时不丢失已保存的记录 ==========
                 loadFromCloud: function() {
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();
@@ -807,12 +790,10 @@
                                         recordData = data;
                                     }
                                     if (Array.isArray(recordData)) {
-                                        // ★★★ 合并云端数据，不覆盖本地已保存的记录 ★★★
                                         var cloudRecords = recordData;
                                         var localRecords = self.records;
                                         var merged = [];
                                         var seenIds = {};
-                                        // 先把本地记录加进去
                                         for (var i = 0; i < localRecords.length; i++) {
                                             var localId = localRecords[i].id;
                                             if (!seenIds[localId]) {
@@ -820,14 +801,12 @@
                                                 seenIds[localId] = true;
                                             }
                                         }
-                                        // 再把云端记录加进去（如果有重复的，云端覆盖本地）
                                         for (var j = 0; j < cloudRecords.length; j++) {
                                             var cloudId = cloudRecords[j].id;
                                             if (!seenIds[cloudId]) {
                                                 merged.push(cloudRecords[j]);
                                                 seenIds[cloudId] = true;
                                             } else {
-                                                // 云端记录覆盖本地同名记录
                                                 for (var k = 0; k < merged.length; k++) {
                                                     if (merged[k].id === cloudId) {
                                                         merged[k] = cloudRecords[j];
@@ -842,7 +821,6 @@
                                         self.syncMsg = '';
                                         self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
                                     } else if (recordData === null || recordData === undefined) {
-                                        // 云端无数据，保留本地记录
                                         self.syncStatus = 'success';
                                         self.syncMsg = '';
                                         self.updateDebug('✅ 连接成功，当前无数据', 'success');
@@ -857,7 +835,6 @@
                                     self.updateDebug('❌ 解析数据失败', 'error');
                                 }
                             } else if (xhr.status === 404) {
-                                // Bin 不存在，保留本地记录
                                 self.syncStatus = 'success';
                                 self.syncMsg = '';
                                 self.updateDebug('✅ Bin 为空，保留本地记录', 'success');
@@ -952,6 +929,8 @@
                     reader.readAsText(file);
                     e.target.value = '';
                 },
+
+                // ★★★ 修复后的 clearAll：同步到云端 ★★★
                 clearAll: function() {
                     var self = this;
                     if (confirm('确定删除所有记录吗？此操作将同步到云端，其他设备也会被清空。')) {
@@ -959,9 +938,7 @@
                         self.imagePreview = null;
                         self.goodInput = '';
                         self.improveInput = '';
-                        // 先清空本地
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                        // 再同步到云端
                         self.saveToCloud();
                         self.updateDebug('🗑️ 已清空所有记录，云端已同步', '');
                     }

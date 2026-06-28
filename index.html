@@ -288,7 +288,7 @@
         </div>
         <div class="toolbar">
             <button class="btn-export" @click="exportData">📤 导出备份</button>
-            <button class="btn-report" @click="() => exportReport()">📄 导出报告</button>
+            <button class="btn-report" @click="exportReport">📄 导出报告</button>
             <button class="btn-export" @click="importData">📥 导入备份</button>
             <input type="file" id="importInput" accept=".json" style="display:none" @change="handleImport" />
             <button class="btn-export" @click="clearAll" style="color:#ef4444;">🗑️ 清空</button>
@@ -755,7 +755,6 @@
                 },
 
                 exportReport: function() {
-                    // ★★★ 修复：用 self 代替 this ★★★
                     var self = this;
                     if (!self.records || self.records.length === 0) {
                         alert('暂无记录，无法导出报告。');
@@ -846,6 +845,8 @@
                 }
             },
             mounted: function() {
+                // ★★★ 关键修复：绑定 this ★★★
+                this.exportReport = this.exportReport.bind(this);
                 this.loadFromLocal();
                 var self = this;
                 setTimeout(function() {

@@ -623,15 +623,14 @@
                     var self = this;
                     var textLength = (this.goodInput.trim() + this.improveInput.trim()).length;
                     
-                    // 根据文字长度决定图片压缩目标（KB）
-                    var targetSize = 85;
-                    if (textLength > 300) targetSize = 70;
-                    if (textLength > 500) targetSize = 55;
-                    if (textLength > 800) targetSize = 40;
-                    if (textLength > 1200) targetSize = 30;
-                    if (textLength > 2000) targetSize = 20;
+                    // 更激进的目标大小
+                    var targetSize = 60; // 基础 60KB
+                    if (textLength > 100) targetSize = 50;
+                    if (textLength > 200) targetSize = 40;
+                    if (textLength > 500) targetSize = 30;
+                    if (textLength > 1000) targetSize = 20;
+                    if (textLength > 2000) targetSize = 15;
                     
-                    // 如果图片是 Base64，先转成 Image 再压缩
                     var img = new Image();
                     img.onload = function() {
                         var compressedDataUrl = self.compressImage(img, targetSize);

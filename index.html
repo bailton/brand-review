@@ -953,12 +953,17 @@
                     e.target.value = '';
                 },
                 clearAll: function() {
-                    if (confirm('确定删除所有记录吗？')) {
-                        this.records = [];
-                        this.imagePreview = null;
-                        this.goodInput = '';
-                        this.improveInput = '';
-                        this.saveToCloud();
+                    var self = this;
+                    if (confirm('确定删除所有记录吗？此操作将同步到云端，其他设备也会被清空。')) {
+                        self.records = [];
+                        self.imagePreview = null;
+                        self.goodInput = '';
+                        self.improveInput = '';
+                        // 先清空本地
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                        // 再同步到云端
+                        self.saveToCloud();
+                        self.updateDebug('🗑️ 已清空所有记录，云端已同步', '');
                     }
                 }
             },

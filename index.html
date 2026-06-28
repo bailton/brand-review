@@ -485,8 +485,9 @@
                     reader.onload = function(ev) {
                         var img = new Image();
                         img.onload = function() {
+                            // 压缩图片
                             var canvas = document.createElement('canvas');
-                            var maxWidth = 800;
+                            var maxWidth = 600;
                             var width = img.width;
                             var height = img.height;
                             if (width > maxWidth) {
@@ -497,7 +498,7 @@
                             canvas.height = height;
                             var ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
-                            var compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                            var compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
                             self.imagePreview = compressedDataUrl;
                             self.imageFile = file;
                         };
@@ -572,7 +573,6 @@
                     this.saveToCloud();
                 },
 
-                // ★★★ 核心修改：使用 X-Master-Key ★★★
                 saveToCloud: function() {
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();
@@ -595,7 +595,7 @@
                     var xhr = new XMLHttpRequest();
                     xhr.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
                     xhr.setRequestHeader('Content-Type', 'application/json');
-                    xhr.setRequestHeader('X-Master-Key', apiKey);  // ★ 改成 X-Master-Key
+                    xhr.setRequestHeader('X-Master-Key', apiKey);
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {
                             if (xhr.status >= 200 && xhr.status < 300) {
@@ -644,7 +644,7 @@
                     var self = this;
                     var xhr = new XMLHttpRequest();
                     xhr.open('GET', 'https://api.jsonbin.io/v3/b/' + binId + '/latest', true);
-                    xhr.setRequestHeader('X-Master-Key', apiKey);  // ★ 改成 X-Master-Key
+                    xhr.setRequestHeader('X-Master-Key', apiKey);
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {
                             if (xhr.status >= 200 && xhr.status < 300) {
@@ -688,7 +688,6 @@
                                 self.syncStatus = 'success';
                                 self.syncMsg = '';
                                 self.updateDebug('✅ Bin 为空，初始化完成', 'success');
-                                self.saveToCloud();
                             } else {
                                 var errMsg = '加载失败 (状态: ' + xhr.status + ')';
                                 try {

@@ -621,12 +621,15 @@
                     if (!this.canSave) return;
                     var self = this;
                     var textLength = (this.goodInput.trim() + this.improveInput.trim()).length;
-                    var targetSize = 60;
-                    if (textLength > 100) targetSize = 50;
-                    if (textLength > 200) targetSize = 40;
-                    if (textLength > 500) targetSize = 30;
+                    
+                    // ★★★ 调低压缩目标，留更多空间给 updatedAt ★★★
+                    var targetSize = 40;
+                    if (textLength > 100) targetSize = 35;
+                    if (textLength > 200) targetSize = 30;
+                    if (textLength > 500) targetSize = 25;
                     if (textLength > 1000) targetSize = 20;
                     if (textLength > 2000) targetSize = 15;
+                    
                     var img = new Image();
                     img.onload = function() {
                         var compressedDataUrl = self.compressImage(img, targetSize);
@@ -664,9 +667,9 @@
                     }
                 },
                 saveRecord: function(compressedDataUrl) {
-                    var now = new Date().toISOString();
+                    var now = Date.now();  // ★★★ Unix 时间戳，比 ISO 字符串更短 ★★★
                     var record = {
-                        id: this.today + '-' + String(Date.now()).slice(-4),
+                        id: this.today + '-' + String(now).slice(-4),
                         date: this.today,
                         imageData: compressedDataUrl,
                         imageName: this.imageFile ? this.imageFile.name : 'screenshot.png',
@@ -675,7 +678,7 @@
                         good: this.goodInput.trim(),
                         improve: this.improveInput.trim(),
                         createdAt: now,
-                        updatedAt: now  // ★★★ 时间戳，用于合并冲突 ★★★
+                        updatedAt: now
                     };
                     this.records.push(record);
                     this.imagePreview = null;
@@ -717,7 +720,7 @@
                     if (idx !== -1) {
                         this.records[idx].good = this.modalEditGood.trim();
                         this.records[idx].improve = this.modalEditImprove.trim();
-                        this.records[idx].updatedAt = new Date().toISOString();
+                        this.records[idx].updatedAt = Date.now();
                         this.modalItem = this.records[idx];
                         this.modalEditing = false;
                         this.saveToCloud();
@@ -732,7 +735,6 @@
                     this.saveToCloud();
                 },
 
-                // ========== 保存到云端 ==========
                 saveToCloud: function() {
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();
@@ -799,7 +801,6 @@
                     this.syncStatus = 'loading';
                     this.updateDebug('⏳ 正在同步...', 'loading');
 
-                    // Step 1: 从云端拉取
                     var xhr = new XMLHttpRequest();
                     xhr.open('GET', 'https://api.jsonbin.io/v3/b/' + binId + '/latest', true);
                     xhr.setRequestHeader('X-Master-Key', apiKey);
@@ -825,30 +826,25 @@
                                     var merged = [];
                                     var map = {};
 
-                                    // 先把本地记录放进去
                                     for (var i = 0; i < localRecords.length; i++) {
                                         var r = localRecords[i];
                                         map[r.id] = r;
                                     }
 
-                                    // 合并云端记录：如果云端记录更新，覆盖本地
                                     for (var j = 0; j < cloudRecords.length; j++) {
                                         var cr = cloudRecords[j];
                                         var local = map[cr.id];
                                         if (!local) {
-                                            // 本地没有，直接加
                                             map[cr.id] = cr;
                                         } else {
-                                            // 比较 updatedAt，保留更新的
-                                            var localTime = new Date(local.updatedAt || local.createdAt || '1970-01-01');
-                                            var cloudTime = new Date(cr.updatedAt || cr.createdAt || '1970-01-01');
+                                            var localTime = local.updatedAt || local.createdAt || 0;
+                                            var cloudTime = cr.updatedAt || cr.createdAt || 0;
                                             if (cloudTime > localTime) {
                                                 map[cr.id] = cr;
                                             }
                                         }
                                     }
 
-                                    // 转回数组
                                     for (var id in map) {
                                         merged.push(map[id]);
                                     }
@@ -856,7 +852,6 @@
                                     self.records = merged;
                                     localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
 
-                                    // Step 2: 把合并后的结果上传到云端（确保云端也是最新）
                                     var payload = JSON.stringify({ records: self.records });
                                     var xhr2 = new XMLHttpRequest();
                                     xhr2.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
@@ -889,7 +884,6 @@
                                     self.updateDebug('❌ 解析数据失败', 'error');
                                 }
                             } else if (xhr.status === 404) {
-                                // 云端没有数据，把本地数据上传
                                 var payload = JSON.stringify({ records: self.records });
                                 var xhr3 = new XMLHttpRequest();
                                 xhr3.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
@@ -930,7 +924,6 @@
                     xhr.send();
                 },
 
-                // ========== 点击同步入口 ==========
                 connectAndSync: function() {
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();

@@ -101,6 +101,8 @@
         .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
         .btn-export { background: #e2e8f0; border: none; padding: 5px 14px; border-radius: 40px; font-size: 0.75rem; cursor: pointer; font-weight: 500; }
         .btn-export:hover { background: #cbd5e1; }
+        .btn-report { background: #dbeafe; border: none; padding: 5px 14px; border-radius: 40px; font-size: 0.75rem; cursor: pointer; font-weight: 500; color: #1e40af; }
+        .btn-report:hover { background: #bfdbfe; }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -285,8 +287,9 @@
             </div>
         </div>
         <div class="toolbar">
-            <button class="btn-export" @click="exportData">📤 导出</button>
-            <button class="btn-export" @click="importData">📥 导入</button>
+            <button class="btn-export" @click="exportData">📤 导出备份</button>
+            <button class="btn-report" @click="exportReport">📄 导出报告</button>
+            <button class="btn-export" @click="importData">📥 导入备份</button>
             <input type="file" id="importInput" accept=".json" style="display:none" @change="handleImport" />
             <button class="btn-export" @click="clearAll" style="color:#ef4444;">🗑️ 清空</button>
         </div>
@@ -485,7 +488,6 @@
                     reader.onload = function(ev) {
                         var img = new Image();
                         img.onload = function() {
-                            // 压缩图片
                             var canvas = document.createElement('canvas');
                             var maxWidth = 600;
                             var width = img.width;
@@ -751,6 +753,61 @@
                     a.click();
                     URL.revokeObjectURL(url);
                 },
+
+                // ★★★ 新增：导出人类可读报告 ★★★
+                exportReport: function() {
+                    if (this.records.length === 0) {
+                        alert('暂无记录，无法导出报告。');
+                        return;
+                    }
+                    var lines = [];
+                    var now = new Date().toLocaleString('zh-CN');
+                    lines.push('📊 市场日记 - 报告');
+                    lines.push('导出时间: ' + now);
+                    lines.push('总记录: ' + this.records.length + ' 条');
+                    lines.push('');
+                    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    lines.push('');
+
+                    var sorted = this.sortedRecords;
+                    for (var i = 0; i < sorted.length; i++) {
+                        var r = sorted[i];
+                        lines.push('📌 #' + (i + 1) + '  ' + r.date);
+                        lines.push('📂 来源: ' + (r.source || '其他') + '  |  品类: ' + (r.category || '其他'));
+                        lines.push('👍 值得学习: ' + (r.good || '未填写'));
+                        lines.push('🔧 可以改善: ' + (r.improve || '未填写'));
+                        lines.push('');
+                        lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        lines.push('');
+                    }
+
+                    // 统计
+                    var catCount = {};
+                    var srcCount = {};
+                    for (var j = 0; j < this.records.length; j++) {
+                        var c = this.records[j].category || '其他';
+                        var s = this.records[j].source || '其他';
+                        catCount[c] = (catCount[c] || 0) + 1;
+                        srcCount[s] = (srcCount[s] || 0) + 1;
+                    }
+                    var catStr = Object.keys(catCount).map(function(k) { return k + '(' + catCount[k] + ')'; }).join(', ');
+                    var srcStr = Object.keys(srcCount).map(function(k) { return k + '(' + srcCount[k] + ')'; }).join(', ');
+
+                    lines.push('📈 统计：');
+                    lines.push('- 总记录: ' + this.records.length + ' 条');
+                    lines.push('- 涉及品类: ' + catStr);
+                    lines.push('- 来源: ' + srcStr);
+
+                    var text = lines.join('\n');
+                    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = '市场日记_报告_' + this.today + '.txt';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+
                 importData: function() {
                     document.getElementById('importInput').click();
                 },

@@ -587,7 +587,6 @@
                                 localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
                                 localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
                                 self.updateDebug('✅ 保存成功！', 'success');
-                                self.loadFromCloud();
                             } else {
                                 var errMsg = '保存失败 (状态: ' + xhr.status + ')';
                                 try {

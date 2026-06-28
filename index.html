@@ -617,19 +617,16 @@
                     reader.readAsDataURL(file);
                     e.target.value = '';
                 },
-                // ========== 动态压缩图片，根据文字长度调整 ==========
                 saveToday: function() {
                     if (!this.canSave) return;
                     var self = this;
                     var textLength = (this.goodInput.trim() + this.improveInput.trim()).length;
-                    
                     var targetSize = 60;
                     if (textLength > 100) targetSize = 50;
                     if (textLength > 200) targetSize = 40;
                     if (textLength > 500) targetSize = 30;
                     if (textLength > 1000) targetSize = 20;
                     if (textLength > 2000) targetSize = 15;
-                    
                     var img = new Image();
                     img.onload = function() {
                         var compressedDataUrl = self.compressImage(img, targetSize);
@@ -667,6 +664,7 @@
                     }
                 },
                 saveRecord: function(compressedDataUrl) {
+                    var now = new Date().toISOString();
                     var record = {
                         id: this.today + '-' + String(Date.now()).slice(-4),
                         date: this.today,
@@ -676,7 +674,8 @@
                         category: this.categoryType,
                         good: this.goodInput.trim(),
                         improve: this.improveInput.trim(),
-                        createdAt: new Date().toISOString()
+                        createdAt: now,
+                        updatedAt: now  // ★★★ 时间戳，用于合并冲突 ★★★
                     };
                     this.records.push(record);
                     this.imagePreview = null;
@@ -718,6 +717,7 @@
                     if (idx !== -1) {
                         this.records[idx].good = this.modalEditGood.trim();
                         this.records[idx].improve = this.modalEditImprove.trim();
+                        this.records[idx].updatedAt = new Date().toISOString();
                         this.modalItem = this.records[idx];
                         this.modalEditing = false;
                         this.saveToCloud();
@@ -785,25 +785,21 @@
                     xhr.send(payload);
                 },
 
-                // ========== 从云端拉取（直接覆盖本地） ==========
-                loadFromCloud: function() {
+                // ========== ★★★ 时间戳合并同步 ★★★ ==========
+                syncMerge: function() {
+                    var self = this;
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();
-                    if (!binId) {
+                    if (!binId || !apiKey) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Bin ID';
-                        this.updateDebug('❌ Bin ID 为空', 'error');
-                        return;
-                    }
-                    if (!apiKey) {
-                        this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Master Key';
-                        this.updateDebug('❌ Master Key 为空', 'error');
+                        this.syncMsg = '请先配置 Bin ID 和 Master Key';
+                        this.updateDebug('❌ 配置缺失', 'error');
                         return;
                     }
                     this.syncStatus = 'loading';
-                    this.updateDebug('⏳ 连接云端...', 'loading');
-                    var self = this;
+                    this.updateDebug('⏳ 正在同步...', 'loading');
+
+                    // Step 1: 从云端拉取
                     var xhr = new XMLHttpRequest();
                     xhr.open('GET', 'https://api.jsonbin.io/v3/b/' + binId + '/latest', true);
                     xhr.setRequestHeader('X-Master-Key', apiKey);
@@ -812,56 +808,117 @@
                             if (xhr.status >= 200 && xhr.status < 300) {
                                 try {
                                     var data = JSON.parse(xhr.responseText);
-                                    var recordData = null;
+                                    var cloudRecords = [];
                                     if (data.record && Array.isArray(data.record)) {
-                                        recordData = data.record;
+                                        cloudRecords = data.record;
                                     } else if (data.record && typeof data.record === 'object') {
                                         if (data.record.records && Array.isArray(data.record.records)) {
-                                            recordData = data.record.records;
+                                            cloudRecords = data.record.records;
                                         } else if (Array.isArray(data.record)) {
-                                            recordData = data.record;
+                                            cloudRecords = data.record;
                                         }
                                     } else if (Array.isArray(data)) {
-                                        recordData = data;
+                                        cloudRecords = data;
                                     }
-                                    if (Array.isArray(recordData)) {
-                                        // ★★★ 直接覆盖本地 ★★★
-                                        self.records = recordData;
-                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                        self.syncStatus = 'success';
-                                        self.syncMsg = '';
-                                        self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
-                                    } else if (recordData === null || recordData === undefined) {
-                                        self.records = [];
-                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                        self.syncStatus = 'success';
-                                        self.syncMsg = '';
-                                        self.updateDebug('✅ 连接成功，当前无数据', 'success');
-                                    } else {
+
+                                    var localRecords = self.records;
+                                    var merged = [];
+                                    var map = {};
+
+                                    // 先把本地记录放进去
+                                    for (var i = 0; i < localRecords.length; i++) {
+                                        var r = localRecords[i];
+                                        map[r.id] = r;
+                                    }
+
+                                    // 合并云端记录：如果云端记录更新，覆盖本地
+                                    for (var j = 0; j < cloudRecords.length; j++) {
+                                        var cr = cloudRecords[j];
+                                        var local = map[cr.id];
+                                        if (!local) {
+                                            // 本地没有，直接加
+                                            map[cr.id] = cr;
+                                        } else {
+                                            // 比较 updatedAt，保留更新的
+                                            var localTime = new Date(local.updatedAt || local.createdAt || '1970-01-01');
+                                            var cloudTime = new Date(cr.updatedAt || cr.createdAt || '1970-01-01');
+                                            if (cloudTime > localTime) {
+                                                map[cr.id] = cr;
+                                            }
+                                        }
+                                    }
+
+                                    // 转回数组
+                                    for (var id in map) {
+                                        merged.push(map[id]);
+                                    }
+
+                                    self.records = merged;
+                                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+
+                                    // Step 2: 把合并后的结果上传到云端（确保云端也是最新）
+                                    var payload = JSON.stringify({ records: self.records });
+                                    var xhr2 = new XMLHttpRequest();
+                                    xhr2.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
+                                    xhr2.setRequestHeader('Content-Type', 'application/json');
+                                    xhr2.setRequestHeader('X-Master-Key', apiKey);
+                                    xhr2.onreadystatechange = function() {
+                                        if (xhr2.readyState === 4) {
+                                            if (xhr2.status >= 200 && xhr2.status < 300) {
+                                                self.syncStatus = 'success';
+                                                self.syncMsg = '';
+                                                localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
+                                                self.updateDebug('✅ 同步成功！共 ' + self.records.length + ' 条记录', 'success');
+                                            } else {
+                                                self.syncStatus = 'error';
+                                                self.syncMsg = '上传合并结果失败';
+                                                self.updateDebug('❌ 同步失败: 上传失败', 'error');
+                                            }
+                                        }
+                                    };
+                                    xhr2.onerror = function() {
                                         self.syncStatus = 'error';
-                                        self.syncMsg = '数据格式异常';
-                                        self.updateDebug('❌ 数据格式异常', 'error');
-                                    }
+                                        self.syncMsg = '网络错误';
+                                        self.updateDebug('❌ 网络错误', 'error');
+                                    };
+                                    xhr2.send(payload);
+
                                 } catch (e) {
                                     self.syncStatus = 'error';
                                     self.syncMsg = '解析数据失败';
                                     self.updateDebug('❌ 解析数据失败', 'error');
                                 }
                             } else if (xhr.status === 404) {
-                                self.records = [];
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                self.syncStatus = 'success';
-                                self.syncMsg = '';
-                                self.updateDebug('✅ Bin 为空，已初始化', 'success');
+                                // 云端没有数据，把本地数据上传
+                                var payload = JSON.stringify({ records: self.records });
+                                var xhr3 = new XMLHttpRequest();
+                                xhr3.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
+                                xhr3.setRequestHeader('Content-Type', 'application/json');
+                                xhr3.setRequestHeader('X-Master-Key', apiKey);
+                                xhr3.onreadystatechange = function() {
+                                    if (xhr3.readyState === 4) {
+                                        if (xhr3.status >= 200 && xhr3.status < 300) {
+                                            self.syncStatus = 'success';
+                                            self.syncMsg = '';
+                                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
+                                            self.updateDebug('✅ 同步成功！共 ' + self.records.length + ' 条记录', 'success');
+                                        } else {
+                                            self.syncStatus = 'error';
+                                            self.syncMsg = '初始化云端失败';
+                                            self.updateDebug('❌ 同步失败', 'error');
+                                        }
+                                    }
+                                };
+                                xhr3.send(payload);
                             } else {
-                                var errMsg = '加载失败 (状态: ' + xhr.status + ')';
+                                var errMsg = '拉取云端数据失败';
                                 try {
                                     var errData = JSON.parse(xhr.responseText);
                                     if (errData.message) errMsg = errData.message;
                                 } catch (e) {}
                                 self.syncStatus = 'error';
                                 self.syncMsg = errMsg;
-                                self.updateDebug('❌ 连接失败: ' + errMsg, 'error');
+                                self.updateDebug('❌ 同步失败: ' + errMsg, 'error');
                             }
                         }
                     };
@@ -873,7 +930,7 @@
                     xhr.send();
                 },
 
-                // ========== ★★★ 核心改动：同步 = 先上传 + 再覆盖拉取 ★★★ ==========
+                // ========== 点击同步入口 ==========
                 connectAndSync: function() {
                     var binId = this.getBinId();
                     var apiKey = this.getApiKey();
@@ -887,16 +944,7 @@
                         return;
                     }
                     localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
-                    
-                    // ★ Step 1: 先把本地数据上传到云端
-                    var self = this;
-                    this.saveToCloud();
-                    
-                    // ★ Step 2: 等待上传完成后，再从云端拉取覆盖本地
-                    // 用 setTimeout 等待 saveToCloud 完成（简单但有效）
-                    setTimeout(function() {
-                        self.loadFromCloud();
-                    }, 1500);
+                    this.syncMerge();
                 },
 
                 loadFromLocal: function() {
@@ -974,7 +1022,7 @@
                     var binId = self.getBinId();
                     var apiKey = self.getApiKey();
                     if (binId && apiKey) {
-                        self.loadFromCloud();
+                        self.syncMerge();
                     } else {
                         self.updateDebug('💡 请填写 Bin ID 和 Master Key，然后点击"连接并同步"', '');
                     }

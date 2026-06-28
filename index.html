@@ -480,11 +480,28 @@
                 handleFile: function(e) {
                     var file = e.target.files[0];
                     if (!file) return;
-                    var reader = new FileReader();
                     var self = this;
+                    var reader = new FileReader();
                     reader.onload = function(ev) {
-                        self.imagePreview = ev.target.result;
-                        self.imageFile = file;
+                        var img = new Image();
+                        img.onload = function() {
+                            var canvas = document.createElement('canvas');
+                            var maxWidth = 800;
+                            var width = img.width;
+                            var height = img.height;
+                            if (width > maxWidth) {
+                                height = height * maxWidth / width;
+                                width = maxWidth;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            var ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            var compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                            self.imagePreview = compressedDataUrl;
+                            self.imageFile = file;
+                        };
+                        img.src = ev.target.result;
                     };
                     reader.readAsDataURL(file);
                     e.target.value = '';

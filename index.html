@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>📷 市场日记1（云同步）</title>
+    <title>📷 brand-review</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -207,9 +207,7 @@
             transition: 0.2s;
         }
         .modal-body .modal-info .edit-textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            background: white;
+            outline: none; border-color: #3b82f6; background: white;
         }
 
         .modal-footer {
@@ -302,7 +300,7 @@
 
 <div id="app">
     <div class="header">
-        <h1>📷 市场日记1</h1>
+        <h1>📷 brand-review</h1>
         <div>
             <span class="sync-status" :class="syncStatusClass">{{ syncStatusText }}</span>
             <span class="streak-badge" :class="{ off: streak === 0 }">🔥 {{ streak }} 天</span>
@@ -311,14 +309,14 @@
 
     <div class="config-card">
         <div class="config-row">
-            <input type="text" id="binIdInput" placeholder="Bin ID" />
-            <input type="password" id="apiKeyInput" placeholder="Master Key" />
+            <input type="text" id="gistIdInput" placeholder="Gist ID（如：abc123def456）" />
+            <input type="password" id="githubTokenInput" placeholder="GitHub Token（需 gist 权限）" />
             <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
                 {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
             </button>
         </div>
-        <div class="hint">💡 <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> → 创建 Bin → 获取 Bin ID 和 Master Key（就是 Access Key）</div>
-        <div class="debug-hint" id="debugHint">💡 请填写 Bin ID，然后点击"连接并同步"</div>
+        <div class="hint">💡 去 GitHub → Settings → Developer settings → Personal access tokens → 生成 Token（勾选 gist 权限）</div>
+        <div class="debug-hint" id="debugHint">💡 请填写 Gist ID 和 GitHub Token，然后点击"连接并同步"</div>
     </div>
 
     <div class="card">
@@ -471,14 +469,14 @@
         </div>
     </div>
 
-    <div class="footer">☁️ 数据存储在 JSONBin 云端 · 跨设备同步 · 每日市场观察练习</div>
+    <div class="footer">☁️ 数据存储在 GitHub Gist · 跨设备同步 · 每日市场观察练习</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
 <script>
     (function() {
-        var STORAGE_KEY = 'market_diary_records';
-        var CONFIG_KEY = 'market_diary_config';
+        var STORAGE_KEY = 'brand_review_records';
+        var CONFIG_KEY = 'brand_review_config';
 
         new Vue({
             el: '#app',
@@ -587,12 +585,12 @@
                     d.setDate(d.getDate() - 1);
                     return d.toISOString().slice(0, 10);
                 },
-                getBinId: function() {
-                    var el = document.getElementById('binIdInput');
+                getGistId: function() {
+                    var el = document.getElementById('gistIdInput');
                     return el ? el.value.trim() : '';
                 },
-                getApiKey: function() {
-                    var el = document.getElementById('apiKeyInput');
+                getGithubToken: function() {
+                    var el = document.getElementById('githubTokenInput');
                     return el ? el.value.trim() : '';
                 },
                 updateDebug: function(msg, type) {
@@ -621,15 +619,12 @@
                     if (!this.canSave) return;
                     var self = this;
                     var textLength = (this.goodInput.trim() + this.improveInput.trim()).length;
-                    
-                    // ★★★ 调低压缩目标，留更多空间给 updatedAt ★★★
-                    var targetSize = 40;
-                    if (textLength > 100) targetSize = 35;
-                    if (textLength > 200) targetSize = 30;
-                    if (textLength > 500) targetSize = 25;
+                    var targetSize = 60;
+                    if (textLength > 100) targetSize = 50;
+                    if (textLength > 200) targetSize = 40;
+                    if (textLength > 500) targetSize = 30;
                     if (textLength > 1000) targetSize = 20;
                     if (textLength > 2000) targetSize = 15;
-                    
                     var img = new Image();
                     img.onload = function() {
                         var compressedDataUrl = self.compressImage(img, targetSize);
@@ -667,7 +662,7 @@
                     }
                 },
                 saveRecord: function(compressedDataUrl) {
-                    var now = Date.now();  // ★★★ Unix 时间戳，比 ISO 字符串更短 ★★★
+                    var now = Date.now();
                     var record = {
                         id: this.today + '-' + String(now).slice(-4),
                         date: this.today,
@@ -685,7 +680,7 @@
                     this.imageFile = null;
                     this.goodInput = '';
                     this.improveInput = '';
-                    this.saveToCloud();
+                    this.saveToGist();
                 },
 
                 openModal: function(item) {
@@ -723,7 +718,7 @@
                         this.records[idx].updatedAt = Date.now();
                         this.modalItem = this.records[idx];
                         this.modalEditing = false;
-                        this.saveToCloud();
+                        this.saveToGist();
                     }
                 },
                 deleteFromModal: function() {
@@ -732,40 +727,40 @@
                     var deletedId = this.modalTempId;
                     this.records = this.records.filter(function(r) { return r.id !== deletedId; });
                     this.closeModal();
-                    this.saveToCloud();
+                    this.saveToGist();
                 },
 
-                saveToCloud: function() {
-                    var binId = this.getBinId();
-                    var apiKey = this.getApiKey();
-                    if (!binId) {
+                // ========== GitHub Gist API ==========
+                saveToGist: function() {
+                    var gistId = this.getGistId();
+                    var token = this.getGithubToken();
+                    if (!gistId) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Bin ID';
-                        this.updateDebug('❌ Bin ID 为空', 'error');
+                        this.syncMsg = '请先配置 Gist ID';
+                        this.updateDebug('❌ Gist ID 为空', 'error');
                         return;
                     }
-                    if (!apiKey) {
+                    if (!token) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Master Key';
-                        this.updateDebug('❌ Master Key 为空', 'error');
+                        this.syncMsg = '请先配置 GitHub Token';
+                        this.updateDebug('❌ GitHub Token 为空', 'error');
                         return;
                     }
                     this.syncStatus = 'loading';
-                    this.updateDebug('⏳ 正在保存到云端...', 'loading');
+                    this.updateDebug('⏳ 正在保存到 Gist...', 'loading');
                     var self = this;
-                    var currentRecords = JSON.stringify(this.records);
                     var payload = JSON.stringify({ records: this.records });
                     var xhr = new XMLHttpRequest();
-                    xhr.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
+                    xhr.open('PATCH', 'https://api.github.com/gists/' + gistId, true);
+                    xhr.setRequestHeader('Authorization', 'token ' + token);
                     xhr.setRequestHeader('Content-Type', 'application/json');
-                    xhr.setRequestHeader('X-Master-Key', apiKey);
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {
                             if (xhr.status >= 200 && xhr.status < 300) {
                                 self.syncStatus = 'success';
                                 self.syncMsg = '';
-                                localStorage.setItem(STORAGE_KEY, currentRecords);
-                                localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
                                 self.updateDebug('✅ 保存成功！', 'success');
                             } else {
                                 var errMsg = '保存失败 (状态: ' + xhr.status + ')';
@@ -784,135 +779,84 @@
                         self.syncMsg = '网络错误';
                         self.updateDebug('❌ 网络错误，请检查网络', 'error');
                     };
-                    xhr.send(payload);
+                    xhr.send(JSON.stringify({
+                        files: {
+                            'brand-review.json': { content: payload }
+                        }
+                    }));
                 },
 
-                // ========== ★★★ 时间戳合并同步 ★★★ ==========
-                syncMerge: function() {
-                    var self = this;
-                    var binId = this.getBinId();
-                    var apiKey = this.getApiKey();
-                    if (!binId || !apiKey) {
+                loadFromGist: function() {
+                    var gistId = this.getGistId();
+                    var token = this.getGithubToken();
+                    if (!gistId) {
                         this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Bin ID 和 Master Key';
-                        this.updateDebug('❌ 配置缺失', 'error');
+                        this.syncMsg = '请先配置 Gist ID';
+                        this.updateDebug('❌ Gist ID 为空', 'error');
+                        return;
+                    }
+                    if (!token) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 GitHub Token';
+                        this.updateDebug('❌ GitHub Token 为空', 'error');
                         return;
                     }
                     this.syncStatus = 'loading';
-                    this.updateDebug('⏳ 正在同步...', 'loading');
-
+                    this.updateDebug('⏳ 连接 Gist...', 'loading');
+                    var self = this;
                     var xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'https://api.jsonbin.io/v3/b/' + binId + '/latest', true);
-                    xhr.setRequestHeader('X-Master-Key', apiKey);
+                    xhr.open('GET', 'https://api.github.com/gists/' + gistId, true);
+                    xhr.setRequestHeader('Authorization', 'token ' + token);
                     xhr.onreadystatechange = function() {
                         if (xhr.readyState === 4) {
                             if (xhr.status >= 200 && xhr.status < 300) {
                                 try {
                                     var data = JSON.parse(xhr.responseText);
-                                    var cloudRecords = [];
-                                    if (data.record && Array.isArray(data.record)) {
-                                        cloudRecords = data.record;
-                                    } else if (data.record && typeof data.record === 'object') {
-                                        if (data.record.records && Array.isArray(data.record.records)) {
-                                            cloudRecords = data.record.records;
-                                        } else if (Array.isArray(data.record)) {
-                                            cloudRecords = data.record;
-                                        }
-                                    } else if (Array.isArray(data)) {
-                                        cloudRecords = data;
-                                    }
-
-                                    var localRecords = self.records;
-                                    var merged = [];
-                                    var map = {};
-
-                                    for (var i = 0; i < localRecords.length; i++) {
-                                        var r = localRecords[i];
-                                        map[r.id] = r;
-                                    }
-
-                                    for (var j = 0; j < cloudRecords.length; j++) {
-                                        var cr = cloudRecords[j];
-                                        var local = map[cr.id];
-                                        if (!local) {
-                                            map[cr.id] = cr;
+                                    var content = data.files['brand-review.json'];
+                                    if (content) {
+                                        var parsed = JSON.parse(content.content);
+                                        if (Array.isArray(parsed.records)) {
+                                            self.records = parsed.records;
+                                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                            self.syncStatus = 'success';
+                                            self.syncMsg = '';
+                                            self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
                                         } else {
-                                            var localTime = local.updatedAt || local.createdAt || 0;
-                                            var cloudTime = cr.updatedAt || cr.createdAt || 0;
-                                            if (cloudTime > localTime) {
-                                                map[cr.id] = cr;
-                                            }
+                                            self.syncStatus = 'error';
+                                            self.syncMsg = '数据格式异常';
+                                            self.updateDebug('❌ 数据格式异常', 'error');
                                         }
+                                    } else {
+                                        // 文件不存在，初始化
+                                        self.records = [];
+                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                        self.syncStatus = 'success';
+                                        self.syncMsg = '';
+                                        self.updateDebug('✅ 连接成功，当前无数据', 'success');
+                                        self.saveToGist();
                                     }
-
-                                    for (var id in map) {
-                                        merged.push(map[id]);
-                                    }
-
-                                    self.records = merged;
-                                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-
-                                    var payload = JSON.stringify({ records: self.records });
-                                    var xhr2 = new XMLHttpRequest();
-                                    xhr2.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
-                                    xhr2.setRequestHeader('Content-Type', 'application/json');
-                                    xhr2.setRequestHeader('X-Master-Key', apiKey);
-                                    xhr2.onreadystatechange = function() {
-                                        if (xhr2.readyState === 4) {
-                                            if (xhr2.status >= 200 && xhr2.status < 300) {
-                                                self.syncStatus = 'success';
-                                                self.syncMsg = '';
-                                                localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
-                                                self.updateDebug('✅ 同步成功！共 ' + self.records.length + ' 条记录', 'success');
-                                            } else {
-                                                self.syncStatus = 'error';
-                                                self.syncMsg = '上传合并结果失败';
-                                                self.updateDebug('❌ 同步失败: 上传失败', 'error');
-                                            }
-                                        }
-                                    };
-                                    xhr2.onerror = function() {
-                                        self.syncStatus = 'error';
-                                        self.syncMsg = '网络错误';
-                                        self.updateDebug('❌ 网络错误', 'error');
-                                    };
-                                    xhr2.send(payload);
-
                                 } catch (e) {
                                     self.syncStatus = 'error';
                                     self.syncMsg = '解析数据失败';
                                     self.updateDebug('❌ 解析数据失败', 'error');
                                 }
                             } else if (xhr.status === 404) {
-                                var payload = JSON.stringify({ records: self.records });
-                                var xhr3 = new XMLHttpRequest();
-                                xhr3.open('PUT', 'https://api.jsonbin.io/v3/b/' + binId, true);
-                                xhr3.setRequestHeader('Content-Type', 'application/json');
-                                xhr3.setRequestHeader('X-Master-Key', apiKey);
-                                xhr3.onreadystatechange = function() {
-                                    if (xhr3.readyState === 4) {
-                                        if (xhr3.status >= 200 && xhr3.status < 300) {
-                                            self.syncStatus = 'success';
-                                            self.syncMsg = '';
-                                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
-                                            self.updateDebug('✅ 同步成功！共 ' + self.records.length + ' 条记录', 'success');
-                                        } else {
-                                            self.syncStatus = 'error';
-                                            self.syncMsg = '初始化云端失败';
-                                            self.updateDebug('❌ 同步失败', 'error');
-                                        }
-                                    }
-                                };
-                                xhr3.send(payload);
+                                // Gist 不存在，创建新文件
+                                self.records = [];
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                self.syncStatus = 'success';
+                                self.syncMsg = '';
+                                self.updateDebug('✅ Gist 为空，初始化完成', 'success');
+                                self.saveToGist();
                             } else {
-                                var errMsg = '拉取云端数据失败';
+                                var errMsg = '连接失败 (状态: ' + xhr.status + ')';
                                 try {
                                     var errData = JSON.parse(xhr.responseText);
                                     if (errData.message) errMsg = errData.message;
                                 } catch (e) {}
                                 self.syncStatus = 'error';
                                 self.syncMsg = errMsg;
-                                self.updateDebug('❌ 同步失败: ' + errMsg, 'error');
+                                self.updateDebug('❌ 连接失败: ' + errMsg, 'error');
                             }
                         }
                     };
@@ -925,19 +869,19 @@
                 },
 
                 connectAndSync: function() {
-                    var binId = this.getBinId();
-                    var apiKey = this.getApiKey();
-                    this.updateDebug('Bin ID: ' + (binId || '空') + ' | Key: ' + (apiKey ? '已填 ✓' : '未填'), '');
-                    if (!binId) {
-                        alert('请填写 Bin ID');
+                    var gistId = this.getGistId();
+                    var token = this.getGithubToken();
+                    this.updateDebug('Gist ID: ' + (gistId || '空') + ' | Token: ' + (token ? '已填 ✓' : '未填'), '');
+                    if (!gistId) {
+                        alert('请填写 Gist ID');
                         return;
                     }
-                    if (!apiKey) {
-                        alert('请填写 Master Key（你的 Access Key）');
+                    if (!token) {
+                        alert('请填写 GitHub Token');
                         return;
                     }
-                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ binId: binId, apiKey: apiKey }));
-                    this.syncMerge();
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
+                    this.loadFromGist();
                 },
 
                 loadFromLocal: function() {
@@ -949,10 +893,10 @@
                         var config = localStorage.getItem(CONFIG_KEY);
                         if (config) {
                             var c = JSON.parse(config);
-                            var binEl = document.getElementById('binIdInput');
-                            var keyEl = document.getElementById('apiKeyInput');
-                            if (binEl) binEl.value = c.binId || '';
-                            if (keyEl) keyEl.value = c.apiKey || '';
+                            var gistEl = document.getElementById('gistIdInput');
+                            var tokenEl = document.getElementById('githubTokenInput');
+                            if (gistEl) gistEl.value = c.gistId || '';
+                            if (tokenEl) tokenEl.value = c.token || '';
                         }
                     } catch (e) {}
                 },
@@ -963,7 +907,7 @@
                     var url = URL.createObjectURL(blob);
                     var a = document.createElement('a');
                     a.href = url;
-                    a.download = '市场日记_' + this.today + '.json';
+                    a.download = 'brand-review_' + this.today + '.json';
                     a.click();
                     URL.revokeObjectURL(url);
                 },
@@ -982,7 +926,7 @@
                             if (Array.isArray(data)) {
                                 if (confirm('导入 ' + data.length + ' 条记录，是否覆盖？')) {
                                     self.records = data;
-                                    self.saveToCloud();
+                                    self.saveToGist();
                                     alert('导入成功！');
                                 }
                             } else {
@@ -997,14 +941,14 @@
                 },
                 clearAll: function() {
                     var self = this;
-                    if (confirm('确定删除所有记录吗？此操作将同步到云端，其他设备也会被清空。')) {
+                    if (confirm('确定删除所有记录吗？此操作将同步到 Gist，其他设备也会被清空。')) {
                         self.records = [];
                         self.imagePreview = null;
                         self.goodInput = '';
                         self.improveInput = '';
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                        self.saveToCloud();
-                        self.updateDebug('🗑️ 已清空所有记录，云端已同步', '');
+                        self.saveToGist();
+                        self.updateDebug('🗑️ 已清空所有记录，Gist 已同步', '');
                     }
                 }
             },
@@ -1012,12 +956,12 @@
                 this.loadFromLocal();
                 var self = this;
                 setTimeout(function() {
-                    var binId = self.getBinId();
-                    var apiKey = self.getApiKey();
-                    if (binId && apiKey) {
-                        self.syncMerge();
+                    var gistId = self.getGistId();
+                    var token = self.getGithubToken();
+                    if (gistId && token) {
+                        self.loadFromGist();
                     } else {
-                        self.updateDebug('💡 请填写 Bin ID 和 Master Key，然后点击"连接并同步"', '');
+                        self.updateDebug('💡 请填写 Gist ID 和 GitHub Token，然后点击"连接并同步"', '');
                     }
                 }, 500);
             }

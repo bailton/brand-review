@@ -611,35 +611,68 @@
                     var self = this;
                     var reader = new FileReader();
                     reader.onload = function(ev) {
-                        var img = new Image();
-                        img.onload = function() {
-                            var canvas = document.createElement('canvas');
-                            var maxWidth = 600;
-                            var width = img.width;
-                            var height = img.height;
-                            if (width > maxWidth) {
-                                height = height * maxWidth / width;
-                                width = maxWidth;
-                            }
-                            canvas.width = width;
-                            canvas.height = height;
-                            var ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, width, height);
-                            var compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
-                            self.imagePreview = compressedDataUrl;
-                            self.imageFile = file;
-                        };
-                        img.src = ev.target.result;
+                        self.imagePreview = ev.target.result;
+                        self.imageFile = file;
                     };
                     reader.readAsDataURL(file);
                     e.target.value = '';
                 },
+                // ========== 动态压缩图片，根据文字长度调整 ==========
                 saveToday: function() {
                     if (!this.canSave) return;
+                    var self = this;
+                    var textLength = (this.goodInput.trim() + this.improveInput.trim()).length;
+                    
+                    // 根据文字长度决定图片压缩目标（KB）
+                    var targetSize = 85;
+                    if (textLength > 300) targetSize = 70;
+                    if (textLength > 500) targetSize = 55;
+                    if (textLength > 800) targetSize = 40;
+                    if (textLength > 1200) targetSize = 30;
+                    if (textLength > 2000) targetSize = 20;
+                    
+                    // 如果图片是 Base64，先转成 Image 再压缩
+                    var img = new Image();
+                    img.onload = function() {
+                        var compressedDataUrl = self.compressImage(img, targetSize);
+                        self.saveRecord(compressedDataUrl);
+                    };
+                    img.src = this.imagePreview;
+                },
+                compressImage: function(img, targetSize) {
+                    var quality = 0.8;
+                    var maxWidth = 800;
+                    var minWidth = 200;
+                    while (true) {
+                        var canvas = document.createElement('canvas');
+                        var width = img.width;
+                        var height = img.height;
+                        if (width > maxWidth) {
+                            height = height * maxWidth / width;
+                            width = maxWidth;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        var dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        var sizeInKB = dataUrl.length / 1024;
+                        if (sizeInKB < targetSize || maxWidth < minWidth) {
+                            return dataUrl;
+                        }
+                        if (quality > 0.3) {
+                            quality -= 0.05;
+                        } else {
+                            maxWidth -= 50;
+                            quality = 0.8;
+                        }
+                    }
+                },
+                saveRecord: function(compressedDataUrl) {
                     var record = {
                         id: this.today + '-' + String(Date.now()).slice(-4),
                         date: this.today,
-                        imageData: this.imagePreview,
+                        imageData: compressedDataUrl,
                         imageName: this.imageFile ? this.imageFile.name : 'screenshot.png',
                         source: this.sourceType,
                         category: this.categoryType,
@@ -929,8 +962,6 @@
                     reader.readAsText(file);
                     e.target.value = '';
                 },
-
-                // ★★★ 修复后的 clearAll：同步到云端 ★★★
                 clearAll: function() {
                     var self = this;
                     if (confirm('确定删除所有记录吗？此操作将同步到云端，其他设备也会被清空。')) {

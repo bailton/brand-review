@@ -303,7 +303,7 @@
         .debug-hint.success { background: #dcfce7; color: #166534; }
         .debug-hint.loading { background: #fef9c3; color: #854d0e; }
 
-        /* ===== 全屏翻页浮层 (Flipbook) ===== */
+        /* ===== 全屏翻页浮层 ===== */
         .flipbook-overlay {
             position: fixed;
             top: 0;
@@ -328,18 +328,20 @@
         .flipbook-container {
             position: relative;
             width: 100%;
-            max-width: 800px;
+            max-width: 880px;
             height: 85vh;
             max-height: 700px;
             display: flex;
             justify-content: center;
             align-items: center;
             perspective: 1200px;
+            /* 当鼠标在容器内，点击不关闭浮层 */
+            pointer-events: auto;
         }
         .flipbook-page {
             position: absolute;
             width: 90%;
-            max-width: 700px;
+            max-width: 720px;
             height: 100%;
             max-height: 650px;
             background: white;
@@ -351,13 +353,17 @@
             transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease;
             transform-origin: left center;
             will-change: transform, opacity;
+            pointer-events: none;
         }
+        .flipbook-page.active {
+            pointer-events: auto;
+        }
+
         /* 卡片翻页模式 (淡入淡出) */
         .flipbook-mode-card .flipbook-page {
             transition: opacity 0.4s ease, transform 0.4s ease;
             transform: scale(0.95) !important;
             opacity: 0;
-            pointer-events: none;
         }
         .flipbook-mode-card .flipbook-page.active {
             opacity: 1;
@@ -386,6 +392,7 @@
             transform: rotateY(5deg) scale(0.98);
             opacity: 0.7;
             z-index: 0;
+            pointer-events: none;
         }
 
         .flipbook-page .page-content {
@@ -537,6 +544,8 @@
             transform: translateX(-50%);
             z-index: 10;
             pointer-events: none;
+            display: flex;
+            gap: 8px;
         }
         .flipbook-mode-toggle > * {
             pointer-events: auto;
@@ -707,8 +716,8 @@
     </div>
 
     <!-- ===== 全屏翻页浮层 ===== -->
-    <div class="flipbook-overlay" id="flipbookOverlay" @click.self="closeFlipbook">
-        <div class="flipbook-container">
+    <div class="flipbook-overlay" id="flipbookOverlay" @click="closeFlipbook">
+        <div class="flipbook-container" @click.stop>
             <!-- 顶部栏 -->
             <div class="flipbook-topbar">
                 <span class="flipbook-progress">{{ flipIndex + 1 }} / {{ flipRecords.length }}</span>
@@ -722,7 +731,7 @@
             </div>
 
             <!-- 页面容器 -->
-            <div id="flipbookPages" :class="['flipbook-container', flipMode === 'card' ? 'flipbook-mode-card' : 'flipbook-mode-book']">
+            <div id="flipbookPages" :class="['flipbook-container', flipMode === 'card' ? 'flipbook-mode-card' : 'flipbook-mode-book']" style="position:relative;width:100%;height:100%;">
                 <div v-for="(item, idx) in flipRecords" 
                      :key="item.id" 
                      class="flipbook-page"
@@ -765,7 +774,7 @@
         </div>
     </div>
 
-    <!-- ===== 原有的编辑 Modal（保留） ===== -->
+    <!-- ===== 原有的编辑 Modal ===== -->
     <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
         <div class="modal-content" v-if="modalItem">
             <button class="modal-close" @click="closeModal">✕</button>
@@ -838,7 +847,6 @@
                 sortOrder: 'newest',
                 filterSource: '全部',
                 filterCategory: '全部',
-                // 翻页相关
                 flipOpen: false,
                 flipIndex: 0,
                 flipRecords: [],
@@ -1103,7 +1111,6 @@
                     if (this.filteredRecords.length === 0) return;
                     this.flipRecords = this.filteredRecords.slice();
                     this.flipIndex = Math.min(index, this.flipRecords.length - 1);
-                    // 读取存储的模式
                     var savedMode = localStorage.getItem(FLIP_MODE_KEY);
                     if (savedMode === 'card' || savedMode === 'book') {
                         this.flipMode = savedMode;
@@ -1113,7 +1120,6 @@
                     this.flipOpen = true;
                     document.getElementById('flipbookOverlay').classList.add('open');
                     document.body.style.overflow = 'hidden';
-                    // 键盘事件
                     document.addEventListener('keydown', this.flipKeyHandler);
                 },
                 closeFlipbook: function() {
@@ -1144,7 +1150,6 @@
                     }
                 },
                 getPageStyle: function(idx) {
-                    // 翻书模式额外样式
                     if (this.flipMode === 'book') {
                         if (idx === this.flipIndex) {
                             return { zIndex: 10 };
@@ -1339,7 +1344,6 @@
                         if (tokenEl) tokenEl.value = c.token || '';
                     }
                 } catch (e) {}
-                // 读取翻页模式偏好
                 try {
                     var savedMode = localStorage.getItem(FLIP_MODE_KEY);
                     if (savedMode === 'card' || savedMode === 'book') {

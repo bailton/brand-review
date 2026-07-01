@@ -365,50 +365,60 @@
             min-height: 0;
             perspective: 1200px;
             margin: 10px 0;
+            touch-action: pan-y;
+            overflow: hidden;
         }
-        .flipbook-fullscreen .fb-body .fb-card {
-            position: absolute;
+        .flipbook-fullscreen .fb-body .fb-cards-wrapper {
+            position: relative;
             width: 88%;
             max-width: 780px;
             height: 85%;
             max-height: 620px;
+        }
+        .flipbook-fullscreen .fb-body .fb-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: white;
             border-radius: 24px;
             overflow: hidden;
             display: flex;
             box-shadow: 0 25px 80px rgba(0,0,0,0.5);
-            transition: opacity 0.35s ease, transform 0.35s ease;
-            transform: scale(0.92);
-            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            will-change: transform, opacity;
             pointer-events: none;
         }
         .flipbook-fullscreen .fb-body .fb-card.active {
-            transform: scale(1);
             opacity: 1;
+            transform: translateX(0) scale(1);
             pointer-events: auto;
+            z-index: 10;
         }
-        .flipbook-fullscreen .fb-body .fb-card.prev {
-            transform: scale(0.85) translateX(-40px);
+        /* 卡片翻页模式 */
+        .flipbook-fullscreen .fb-body .fb-card.card-prev {
             opacity: 0;
+            transform: translateX(-60px) scale(0.92);
+            z-index: 5;
         }
-        .flipbook-fullscreen .fb-body .fb-card.next {
-            transform: scale(0.85) translateX(40px);
+        .flipbook-fullscreen .fb-body .fb-card.card-next {
             opacity: 0;
+            transform: translateX(60px) scale(0.92);
+            z-index: 5;
         }
-
-        /* 翻书效果 */
-        .flipbook-fullscreen.book-mode .fb-body .fb-card {
-            transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease;
-            transform-origin: left center;
-        }
-        .flipbook-fullscreen.book-mode .fb-body .fb-card.flipped {
-            transform: rotateY(-170deg) scale(0.95);
-        }
-        .flipbook-fullscreen.book-mode .fb-body .fb-card.next-page {
-            transform: rotateY(6deg) scale(0.97);
+        /* 翻书模式 */
+        .flipbook-fullscreen .fb-body .fb-card.book-prev {
             opacity: 0.6;
-            z-index: 0;
-            pointer-events: none;
+            transform: translateX(-40px) scale(0.95) rotateY(10deg);
+            z-index: 5;
+            transform-origin: right center;
+        }
+        .flipbook-fullscreen .fb-body .fb-card.book-next {
+            opacity: 0.6;
+            transform: translateX(40px) scale(0.95) rotateY(-10deg);
+            z-index: 5;
+            transform-origin: left center;
         }
 
         .flipbook-fullscreen .fb-body .fb-card .fb-card-content {
@@ -542,7 +552,7 @@
             .flipbook-fullscreen {
                 padding: 12px 14px 16px 14px;
             }
-            .flipbook-fullscreen .fb-body .fb-card {
+            .flipbook-fullscreen .fb-body .fb-cards-wrapper {
                 width: 95%;
                 height: 80%;
             }
@@ -716,38 +726,39 @@
             <button class="fb-close" @click="closeFlipbook">✕</button>
             <span class="fb-progress">{{ flipIndex + 1 }} / {{ flipRecords.length }}</span>
         </div>
-        <div class="fb-body" :class="flipMode === 'book' ? 'book-mode' : ''">
+        <div class="fb-body" ref="fbBody">
             <button class="fb-arrow fb-arrow-left" @click="flipPrev" :disabled="flipIndex <= 0">◀</button>
             <button class="fb-arrow fb-arrow-right" @click="flipNext" :disabled="flipIndex >= flipRecords.length - 1">▶</button>
 
-            <div v-for="(item, idx) in flipRecords" 
-                 :key="item.id" 
-                 class="fb-card"
-                 :class="{
-                     active: idx === flipIndex,
-                     prev: idx === flipIndex - 1 && flipMode === 'card',
-                     next: idx === flipIndex + 1 && flipMode === 'card',
-                     'next-page': idx === flipIndex + 1 && flipMode === 'book',
-                     flipped: idx < flipIndex && flipMode === 'book'
-                 }"
-                 :style="getPageStyle(idx)">
-                <div class="fb-card-content">
-                    <div class="fb-image">
-                        <img :src="item.imageData" alt="记录图片" />
-                    </div>
-                    <div class="fb-text">
-                        <div class="fb-date">📅 {{ item.date }}</div>
-                        <div class="fb-tags">
-                            <span>📂 {{ item.source || '其他' }}</span>
-                            <span>🏷️ {{ item.category || '其他' }}</span>
+            <div class="fb-cards-wrapper">
+                <div v-for="(item, idx) in flipRecords" 
+                     :key="item.id" 
+                     class="fb-card"
+                     :class="{
+                         active: idx === flipIndex,
+                         'card-prev': idx === flipIndex - 1 && flipMode === 'card',
+                         'card-next': idx === flipIndex + 1 && flipMode === 'card',
+                         'book-prev': idx === flipIndex - 1 && flipMode === 'book',
+                         'book-next': idx === flipIndex + 1 && flipMode === 'book'
+                     }">
+                    <div class="fb-card-content">
+                        <div class="fb-image">
+                            <img :src="item.imageData" alt="记录图片" />
                         </div>
-                        <div class="fb-good">
-                            <span class="fb-label">👍 值得学习</span>
-                            {{ item.good || '未填写' }}
-                        </div>
-                        <div class="fb-improve" v-if="item.improve">
-                            <span class="fb-label">🔧 可以改善</span>
-                            {{ item.improve }}
+                        <div class="fb-text">
+                            <div class="fb-date">📅 {{ item.date }}</div>
+                            <div class="fb-tags">
+                                <span>📂 {{ item.source || '其他' }}</span>
+                                <span>🏷️ {{ item.category || '其他' }}</span>
+                            </div>
+                            <div class="fb-good">
+                                <span class="fb-label">👍 值得学习</span>
+                                {{ item.good || '未填写' }}
+                            </div>
+                            <div class="fb-improve" v-if="item.improve">
+                                <span class="fb-label">🔧 可以改善</span>
+                                {{ item.improve }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -835,7 +846,10 @@
                 flipOpen: false,
                 flipIndex: 0,
                 flipRecords: [],
-                flipMode: 'card'
+                flipMode: 'card',
+                touchStartX: 0,
+                touchEndX: 0,
+                isSwiping: false
             },
             computed: {
                 today: function() {
@@ -1106,6 +1120,13 @@
                     el.classList.add('open');
                     document.body.style.overflow = 'hidden';
                     document.addEventListener('keydown', this.flipKeyHandler);
+                    // 触摸事件监听
+                    var body = this.$refs.fbBody;
+                    if (body) {
+                        body.addEventListener('touchstart', this.onTouchStart, { passive: true });
+                        body.addEventListener('touchmove', this.onTouchMove, { passive: true });
+                        body.addEventListener('touchend', this.onTouchEnd, { passive: true });
+                    }
                 },
                 closeFlipbook: function() {
                     this.flipOpen = false;
@@ -1113,6 +1134,12 @@
                     el.classList.remove('open');
                     document.body.style.overflow = '';
                     document.removeEventListener('keydown', this.flipKeyHandler);
+                    var body = this.$refs.fbBody;
+                    if (body) {
+                        body.removeEventListener('touchstart', this.onTouchStart);
+                        body.removeEventListener('touchmove', this.onTouchMove);
+                        body.removeEventListener('touchend', this.onTouchEnd);
+                    }
                 },
                 flipPrev: function() {
                     if (this.flipIndex > 0) {
@@ -1135,17 +1162,28 @@
                         this.closeFlipbook();
                     }
                 },
-                getPageStyle: function(idx) {
-                    if (this.flipMode === 'book') {
-                        if (idx === this.flipIndex) {
-                            return { zIndex: 10 };
-                        } else if (idx === this.flipIndex + 1) {
-                            return { zIndex: 5 };
-                        } else if (idx < this.flipIndex) {
-                            return { zIndex: 1, transform: 'rotateY(-170deg) scale(0.95)' };
+                // ===== 触摸滑动翻页 =====
+                onTouchStart: function(e) {
+                    this.touchStartX = e.touches[0].clientX;
+                    this.isSwiping = true;
+                },
+                onTouchMove: function(e) {
+                    if (!this.isSwiping) return;
+                    this.touchEndX = e.touches[0].clientX;
+                },
+                onTouchEnd: function() {
+                    if (!this.isSwiping) return;
+                    this.isSwiping = false;
+                    var diff = this.touchStartX - this.touchEndX;
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.flipNext();
+                        } else {
+                            this.flipPrev();
                         }
                     }
-                    return {};
+                    this.touchStartX = 0;
+                    this.touchEndX = 0;
                 },
 
                 // ========== GitHub Gist API ==========

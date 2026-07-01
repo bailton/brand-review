@@ -302,6 +302,271 @@
         .debug-hint.error { background: #fee2e2; color: #991b1b; }
         .debug-hint.success { background: #dcfce7; color: #166534; }
         .debug-hint.loading { background: #fef9c3; color: #854d0e; }
+
+        /* ===== 全屏翻页浮层 (Flipbook) ===== */
+        .flipbook-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .flipbook-overlay.open {
+            display: flex;
+            opacity: 1;
+        }
+        .flipbook-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 85vh;
+            max-height: 700px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1200px;
+        }
+        .flipbook-page {
+            position: absolute;
+            width: 90%;
+            max-width: 700px;
+            height: 100%;
+            max-height: 650px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease;
+            transform-origin: left center;
+            will-change: transform, opacity;
+        }
+        /* 卡片翻页模式 (淡入淡出) */
+        .flipbook-mode-card .flipbook-page {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: scale(0.95) !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .flipbook-mode-card .flipbook-page.active {
+            opacity: 1;
+            transform: scale(1) !important;
+            pointer-events: auto;
+        }
+        .flipbook-mode-card .flipbook-page.prev {
+            opacity: 0;
+            transform: scale(0.9) translateX(-30px) !important;
+        }
+        .flipbook-mode-card .flipbook-page.next {
+            opacity: 0;
+            transform: scale(0.9) translateX(30px) !important;
+        }
+
+        /* 翻书模式 (3D flip) */
+        .flipbook-mode-book .flipbook-page {
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            transform: rotateY(0deg);
+            transform-origin: left center;
+        }
+        .flipbook-mode-book .flipbook-page.flipped {
+            transform: rotateY(-180deg);
+        }
+        .flipbook-mode-book .flipbook-page.next-page {
+            transform: rotateY(5deg) scale(0.98);
+            opacity: 0.7;
+            z-index: 0;
+        }
+
+        .flipbook-page .page-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 24px 28px;
+            overflow-y: auto;
+        }
+        .flipbook-page .page-content .page-image {
+            flex: 0 0 55%;
+            min-height: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f1f5f9;
+            margin-bottom: 16px;
+        }
+        .flipbook-page .page-content .page-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .flipbook-page .page-content .page-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+        }
+        .flipbook-page .page-content .page-text .page-date {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        .flipbook-page .page-content .page-text .page-tags {
+            font-size: 0.8rem;
+            color: #64748b;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .flipbook-page .page-content .page-text .page-tags span {
+            background: #eef2f6;
+            padding: 2px 12px;
+            border-radius: 20px;
+        }
+        .flipbook-page .page-content .page-text .page-good {
+            background: #f0fdf4;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border-left: 3px solid #22c55e;
+            font-size: 0.85rem;
+        }
+        .flipbook-page .page-content .page-text .page-improve {
+            background: #fef2f2;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border-left: 3px solid #ef4444;
+            font-size: 0.85rem;
+        }
+        .flipbook-page .page-content .page-text .page-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #64748b;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .flipbook-controls {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            padding: 0 10px;
+        }
+        .flipbook-controls button {
+            pointer-events: auto;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .flipbook-controls button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .flipbook-controls button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .flipbook-topbar {
+            position: absolute;
+            top: 16px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .flipbook-topbar > * {
+            pointer-events: auto;
+        }
+        .flipbook-progress {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: rgba(0,0,0,0.3);
+            padding: 6px 16px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+        }
+        .flipbook-close {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .flipbook-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .flipbook-mode-toggle {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .flipbook-mode-toggle > * {
+            pointer-events: auto;
+        }
+        .flipbook-mode-toggle button {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.7);
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 0 4px;
+        }
+        .flipbook-mode-toggle button.active {
+            background: rgba(255,255,255,0.25);
+            color: white;
+            border-color: rgba(255,255,255,0.3);
+        }
+        .flipbook-mode-toggle button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .flipbook-empty {
+            color: rgba(255,255,255,0.6);
+            font-size: 1.2rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -427,7 +692,7 @@
             还没有记录，今天开始吧！
         </div>
         <div class="history-grid" v-else>
-            <div class="history-item" v-for="item in filteredRecords" :key="item.id" @click="openModal(item)">
+            <div class="history-item" v-for="(item, index) in filteredRecords" :key="item.id" @click="openFlipbook(index)">
                 <img :src="item.imageData" alt="截图" />
                 <div class="info">
                     <div class="date">{{ item.date }}</div>
@@ -441,7 +706,66 @@
         </div>
     </div>
 
-    <!-- ========== Modal 弹窗（已支持编辑来源和品类） ========== -->
+    <!-- ===== 全屏翻页浮层 ===== -->
+    <div class="flipbook-overlay" id="flipbookOverlay" @click.self="closeFlipbook">
+        <div class="flipbook-container">
+            <!-- 顶部栏 -->
+            <div class="flipbook-topbar">
+                <span class="flipbook-progress">{{ flipIndex + 1 }} / {{ flipRecords.length }}</span>
+                <button class="flipbook-close" @click="closeFlipbook">✕</button>
+            </div>
+
+            <!-- 左右箭头 -->
+            <div class="flipbook-controls">
+                <button @click="flipPrev" :disabled="flipIndex <= 0">◀</button>
+                <button @click="flipNext" :disabled="flipIndex >= flipRecords.length - 1">▶</button>
+            </div>
+
+            <!-- 页面容器 -->
+            <div id="flipbookPages" :class="['flipbook-container', flipMode === 'card' ? 'flipbook-mode-card' : 'flipbook-mode-book']">
+                <div v-for="(item, idx) in flipRecords" 
+                     :key="item.id" 
+                     class="flipbook-page"
+                     :class="{
+                         active: idx === flipIndex,
+                         prev: idx === flipIndex - 1 && flipMode === 'card',
+                         next: idx === flipIndex + 1 && flipMode === 'card',
+                         'next-page': idx === flipIndex + 1 && flipMode === 'book',
+                         flipped: idx < flipIndex && flipMode === 'book'
+                     }"
+                     :style="getPageStyle(idx)">
+                    <div class="page-content">
+                        <div class="page-image">
+                            <img :src="item.imageData" alt="记录图片" />
+                        </div>
+                        <div class="page-text">
+                            <div class="page-date">📅 {{ item.date }}</div>
+                            <div class="page-tags">
+                                <span>📂 {{ item.source || '其他' }}</span>
+                                <span>🏷️ {{ item.category || '其他' }}</span>
+                            </div>
+                            <div class="page-good">
+                                <span class="page-label">👍 值得学习</span>
+                                {{ item.good || '未填写' }}
+                            </div>
+                            <div class="page-improve" v-if="item.improve">
+                                <span class="page-label">🔧 可以改善</span>
+                                {{ item.improve }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部切换按钮 -->
+            <div class="flipbook-mode-toggle">
+                <button @click="flipMode = 'card'" :class="{ active: flipMode === 'card' }">📄 卡片翻页</button>
+                <button @click="flipMode = 'book'" :class="{ active: flipMode === 'book' }">📖 翻书效果</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 原有的编辑 Modal（保留） ===== -->
     <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
         <div class="modal-content" v-if="modalItem">
             <button class="modal-close" @click="closeModal">✕</button>
@@ -451,59 +775,22 @@
                 </div>
                 <div class="modal-info">
                     <div class="modal-date">📅 {{ modalItem.date }}</div>
-
-                    <!-- 来源 + 品类（支持编辑） -->
                     <div class="modal-tags">
-                        <!-- 来源 -->
-                        <span v-if="!modalEditing">
-                            📂 {{ modalItem.source || '其他' }}
-                        </span>
-                        <span v-else>
-                            📂
-                            <select v-model="modalEditSource">
-                                <option value="自己设计">自己设计</option>
-                                <option value="其他品牌">其他品牌</option>
-                                <option value="其他">其他</option>
-                            </select>
-                        </span>
-                        <!-- 品类 -->
-                        <span v-if="!modalEditing">
-                            🏷️ {{ modalItem.category || '其他' }}
-                        </span>
-                        <span v-else>
-                            🏷️
-                            <select v-model="modalEditCategory">
-                                <option value="饮食">饮食</option>
-                                <option value="电子产品">电子产品</option>
-                                <option value="汽车">汽车</option>
-                                <option value="服饰">服饰</option>
-                                <option value="家居">家居</option>
-                                <option value="金融">金融</option>
-                                <option value="互联网">互联网</option>
-                                <option value="教育">教育</option>
-                                <option value="医疗">医疗</option>
-                                <option value="旅游">旅游</option>
-                                <option value="娱乐">娱乐</option>
-                                <option value="其他">其他</option>
-                            </select>
-                        </span>
+                        <span v-if="!modalEditing">📂 {{ modalItem.source || '其他' }}</span>
+                        <span v-else>📂 <select v-model="modalEditSource"><option value="自己设计">自己设计</option><option value="其他品牌">其他品牌</option><option value="其他">其他</option></select></span>
+                        <span v-if="!modalEditing">🏷️ {{ modalItem.category || '其他' }}</span>
+                        <span v-else>🏷️ <select v-model="modalEditCategory"><option value="饮食">饮食</option><option value="电子产品">电子产品</option><option value="汽车">汽车</option><option value="服饰">服饰</option><option value="家居">家居</option><option value="金融">金融</option><option value="互联网">互联网</option><option value="教育">教育</option><option value="医疗">医疗</option><option value="旅游">旅游</option><option value="娱乐">娱乐</option><option value="其他">其他</option></select></span>
                     </div>
-
-                    <!-- 值得学习 -->
                     <div class="modal-good">
                         <span class="modal-label">👍 值得学习</span>
                         <div v-if="!modalEditing">{{ modalItem.good || '未填写' }}</div>
                         <textarea v-else class="edit-textarea" v-model="modalEditGood"></textarea>
                     </div>
-
-                    <!-- 可以改善 -->
                     <div class="modal-improve">
                         <span class="modal-label">🔧 可以改善</span>
                         <div v-if="!modalEditing">{{ modalItem.improve || '未填写' }}</div>
                         <textarea v-else class="edit-textarea" v-model="modalEditImprove"></textarea>
                     </div>
-
-                    <!-- 底部按钮 -->
                     <div class="modal-footer">
                         <button class="btn-delete" @click="deleteFromModal">🗑️ 删除</button>
                         <div>
@@ -525,6 +812,7 @@
     (function() {
         var STORAGE_KEY = 'brand_review_records';
         var CONFIG_KEY = 'brand_review_config';
+        var FLIP_MODE_KEY = 'brand_review_flip_mode';
 
         new Vue({
             el: '#app',
@@ -549,7 +837,12 @@
                 modalTempId: null,
                 sortOrder: 'newest',
                 filterSource: '全部',
-                filterCategory: '全部'
+                filterCategory: '全部',
+                // 翻页相关
+                flipOpen: false,
+                flipIndex: 0,
+                flipRecords: [],
+                flipMode: 'card'
             },
             computed: {
                 today: function() {
@@ -751,7 +1044,7 @@
                     this.saveToGist();
                 },
 
-                // ========== Modal 方法（支持编辑来源和品类） ==========
+                // ========== Modal ==========
                 openModal: function(item) {
                     this.modalItem = item;
                     this.modalTempId = item.id;
@@ -805,224 +1098,68 @@
                     this.saveToGist();
                 },
 
-                // ========== GitHub Gist API ==========
-                saveToGist: function() {
-                    var gistId = this.getGistId();
-                    var token = this.getGithubToken();
-                    if (!gistId) {
-                        this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Gist ID';
-                        this.updateDebug('❌ Gist ID 为空', 'error');
-                        return;
+                // ========== 翻页功能 ==========
+                openFlipbook: function(index) {
+                    if (this.filteredRecords.length === 0) return;
+                    this.flipRecords = this.filteredRecords.slice();
+                    this.flipIndex = Math.min(index, this.flipRecords.length - 1);
+                    // 读取存储的模式
+                    var savedMode = localStorage.getItem(FLIP_MODE_KEY);
+                    if (savedMode === 'card' || savedMode === 'book') {
+                        this.flipMode = savedMode;
+                    } else {
+                        this.flipMode = 'card';
                     }
-                    if (!token) {
-                        this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 GitHub Token';
-                        this.updateDebug('❌ GitHub Token 为空', 'error');
-                        return;
+                    this.flipOpen = true;
+                    document.getElementById('flipbookOverlay').classList.add('open');
+                    document.body.style.overflow = 'hidden';
+                    // 键盘事件
+                    document.addEventListener('keydown', this.flipKeyHandler);
+                },
+                closeFlipbook: function() {
+                    this.flipOpen = false;
+                    document.getElementById('flipbookOverlay').classList.remove('open');
+                    document.body.style.overflow = '';
+                    document.removeEventListener('keydown', this.flipKeyHandler);
+                },
+                flipPrev: function() {
+                    if (this.flipIndex > 0) {
+                        this.flipIndex--;
                     }
-                    this.syncStatus = 'loading';
-                    this.updateDebug('⏳ 正在保存到 Gist...', 'loading');
-                    var self = this;
-                    var payload = JSON.stringify({ records: this.records });
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('PATCH', 'https://api.github.com/gists/' + gistId, true);
-                    xhr.setRequestHeader('Authorization', 'token ' + token);
-                    xhr.setRequestHeader('Content-Type', 'application/json');
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4) {
-                            if (xhr.status >= 200 && xhr.status < 300) {
-                                self.syncStatus = 'success';
-                                self.syncMsg = '';
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
-                                self.updateDebug('✅ 保存成功！', 'success');
-                            } else {
-                                var errMsg = '保存失败 (状态: ' + xhr.status + ')';
-                                try {
-                                    var errData = JSON.parse(xhr.responseText);
-                                    if (errData.message) errMsg = errData.message;
-                                } catch (e) {}
-                                self.syncStatus = 'error';
-                                self.syncMsg = errMsg;
-                                self.updateDebug('❌ 保存失败: ' + errMsg, 'error');
-                            }
+                },
+                flipNext: function() {
+                    if (this.flipIndex < this.flipRecords.length - 1) {
+                        this.flipIndex++;
+                    }
+                },
+                flipKeyHandler: function(e) {
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.flipPrev();
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        this.flipNext();
+                    } else if (e.key === 'Escape') {
+                        this.closeFlipbook();
+                    }
+                },
+                getPageStyle: function(idx) {
+                    // 翻书模式额外样式
+                    if (this.flipMode === 'book') {
+                        if (idx === this.flipIndex) {
+                            return { zIndex: 10 };
+                        } else if (idx === this.flipIndex + 1) {
+                            return { zIndex: 5 };
+                        } else if (idx < this.flipIndex) {
+                            return { zIndex: 1, transform: 'rotateY(-180deg)' };
                         }
-                    };
-                    xhr.onerror = function() {
-                        self.syncStatus = 'error';
-                        self.syncMsg = '网络错误';
-                        self.updateDebug('❌ 网络错误，请检查网络', 'error');
-                    };
-                    xhr.send(JSON.stringify({
-                        files: {
-                            'brand-review.json': { content: payload }
-                        }
-                    }));
-                },
-
-                loadFromGist: function() {
-                    var gistId = this.getGistId();
-                    var token = this.getGithubToken();
-                    if (!gistId) {
-                        this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 Gist ID';
-                        this.updateDebug('❌ Gist ID 为空', 'error');
-                        return;
                     }
-                    if (!token) {
-                        this.syncStatus = 'error';
-                        this.syncMsg = '请先配置 GitHub Token';
-                        this.updateDebug('❌ GitHub Token 为空', 'error');
-                        return;
-                    }
-                    this.syncStatus = 'loading';
-                    this.updateDebug('⏳ 连接 Gist...', 'loading');
-                    var self = this;
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'https://api.github.com/gists/' + gistId, true);
-                    xhr.setRequestHeader('Authorization', 'token ' + token);
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4) {
-                            if (xhr.status >= 200 && xhr.status < 300) {
-                                try {
-                                    var data = JSON.parse(xhr.responseText);
-                                    var content = data.files['brand-review.json'];
-                                    if (content) {
-                                        var parsed = JSON.parse(content.content);
-                                        if (Array.isArray(parsed.records)) {
-                                            self.records = parsed.records;
-                                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                            self.syncStatus = 'success';
-                                            self.syncMsg = '';
-                                            self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
-                                        } else {
-                                            self.syncStatus = 'error';
-                                            self.syncMsg = '数据格式异常';
-                                            self.updateDebug('❌ 数据格式异常', 'error');
-                                        }
-                                    } else {
-                                        self.records = [];
-                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                        self.syncStatus = 'success';
-                                        self.syncMsg = '';
-                                        self.updateDebug('✅ 连接成功，当前无数据', 'success');
-                                        self.saveToGist();
-                                    }
-                                } catch (e) {
-                                    self.syncStatus = 'error';
-                                    self.syncMsg = '解析数据失败';
-                                    self.updateDebug('❌ 解析数据失败', 'error');
-                                }
-                            } else if (xhr.status === 404) {
-                                self.records = [];
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                self.syncStatus = 'success';
-                                self.syncMsg = '';
-                                self.updateDebug('✅ Gist 为空，初始化完成', 'success');
-                                self.saveToGist();
-                            } else {
-                                var errMsg = '连接失败 (状态: ' + xhr.status + ')';
-                                try {
-                                    var errData = JSON.parse(xhr.responseText);
-                                    if (errData.message) errMsg = errData.message;
-                                } catch (e) {}
-                                self.syncStatus = 'error';
-                                self.syncMsg = errMsg;
-                                self.updateDebug('❌ 连接失败: ' + errMsg, 'error');
-                            }
-                        }
-                    };
-                    xhr.onerror = function() {
-                        self.syncStatus = 'error';
-                        self.syncMsg = '网络错误';
-                        self.updateDebug('❌ 网络错误，请检查网络', 'error');
-                    };
-                    xhr.send();
-                },
-
-                connectAndSync: function() {
-                    var gistId = this.getGistId();
-                    var token = this.getGithubToken();
-                    this.updateDebug('Gist ID: ' + (gistId || '空') + ' | Token: ' + (token ? '已填 ✓' : '未填'), '');
-                    if (!gistId) {
-                        alert('请填写 Gist ID');
-                        return;
-                    }
-                    if (!token) {
-                        alert('请填写 GitHub Token');
-                        return;
-                    }
-                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
-                    this.loadFromGist();
-                },
-
-                loadFromLocal: function() {
-                    try {
-                        var data = localStorage.getItem(STORAGE_KEY);
-                        if (data) this.records = JSON.parse(data);
-                    } catch (e) { this.records = []; }
-                    try {
-                        var config = localStorage.getItem(CONFIG_KEY);
-                        if (config) {
-                            var c = JSON.parse(config);
-                            var gistEl = document.getElementById('gistIdInput');
-                            var tokenEl = document.getElementById('githubTokenInput');
-                            if (gistEl) gistEl.value = c.gistId || '';
-                            if (tokenEl) tokenEl.value = c.token || '';
-                        }
-                    } catch (e) {}
-                },
-
-                exportData: function() {
-                    var data = JSON.stringify(this.records, null, 2);
-                    var blob = new Blob([data], { type: 'application/json' });
-                    var url = URL.createObjectURL(blob);
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'brand-review_' + this.today + '.json';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                },
-
-                importData: function() {
-                    document.getElementById('importInput').click();
-                },
-                handleImport: function(e) {
-                    var file = e.target.files[0];
-                    if (!file) return;
-                    var reader = new FileReader();
-                    var self = this;
-                    reader.onload = function(ev) {
-                        try {
-                            var data = JSON.parse(ev.target.result);
-                            if (Array.isArray(data)) {
-                                if (confirm('导入 ' + data.length + ' 条记录，是否覆盖？')) {
-                                    self.records = data;
-                                    self.saveToGist();
-                                    alert('导入成功！');
-                                }
-                            } else {
-                                alert('格式不正确');
-                            }
-                        } catch (err) {
-                            alert('解析失败');
-                        }
-                    };
-                    reader.readAsText(file);
-                    e.target.value = '';
-                },
-                clearAll: function() {
-                    var self = this;
-                    if (confirm('确定删除所有记录吗？此操作将同步到 Gist，其他设备也会被清空。')) {
-                        self.records = [];
-                        self.imagePreview = null;
-                        self.goodInput = '';
-                        self.improveInput = '';
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                        self.saveToGist();
-                        self.updateDebug('🗑️ 已清空所有记录，Gist 已同步', '');
-                    }
+                    return {};
+                }
+            },
+            watch: {
+                flipMode: function(newMode) {
+                    localStorage.setItem(FLIP_MODE_KEY, newMode);
                 }
             },
             mounted: function() {
@@ -1037,6 +1174,227 @@
                         self.updateDebug('💡 请填写 Gist ID 和 GitHub Token，然后点击"连接并同步"', '');
                     }
                 }, 500);
+            },
+            // ========== GitHub Gist API ==========
+            saveToGist: function() {
+                var gistId = this.getGistId();
+                var token = this.getGithubToken();
+                if (!gistId) {
+                    this.syncStatus = 'error';
+                    this.syncMsg = '请先配置 Gist ID';
+                    this.updateDebug('❌ Gist ID 为空', 'error');
+                    return;
+                }
+                if (!token) {
+                    this.syncStatus = 'error';
+                    this.syncMsg = '请先配置 GitHub Token';
+                    this.updateDebug('❌ GitHub Token 为空', 'error');
+                    return;
+                }
+                this.syncStatus = 'loading';
+                this.updateDebug('⏳ 正在保存到 Gist...', 'loading');
+                var self = this;
+                var payload = JSON.stringify({ records: this.records });
+                var xhr = new XMLHttpRequest();
+                xhr.open('PATCH', 'https://api.github.com/gists/' + gistId, true);
+                xhr.setRequestHeader('Authorization', 'token ' + token);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            self.syncStatus = 'success';
+                            self.syncMsg = '';
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
+                            self.updateDebug('✅ 保存成功！', 'success');
+                        } else {
+                            var errMsg = '保存失败 (状态: ' + xhr.status + ')';
+                            try {
+                                var errData = JSON.parse(xhr.responseText);
+                                if (errData.message) errMsg = errData.message;
+                            } catch (e) {}
+                            self.syncStatus = 'error';
+                            self.syncMsg = errMsg;
+                            self.updateDebug('❌ 保存失败: ' + errMsg, 'error');
+                        }
+                    }
+                };
+                xhr.onerror = function() {
+                    self.syncStatus = 'error';
+                    self.syncMsg = '网络错误';
+                    self.updateDebug('❌ 网络错误，请检查网络', 'error');
+                };
+                xhr.send(JSON.stringify({
+                    files: {
+                        'brand-review.json': { content: payload }
+                    }
+                }));
+            },
+            loadFromGist: function() {
+                var gistId = this.getGistId();
+                var token = this.getGithubToken();
+                if (!gistId) {
+                    this.syncStatus = 'error';
+                    this.syncMsg = '请先配置 Gist ID';
+                    this.updateDebug('❌ Gist ID 为空', 'error');
+                    return;
+                }
+                if (!token) {
+                    this.syncStatus = 'error';
+                    this.syncMsg = '请先配置 GitHub Token';
+                    this.updateDebug('❌ GitHub Token 为空', 'error');
+                    return;
+                }
+                this.syncStatus = 'loading';
+                this.updateDebug('⏳ 连接 Gist...', 'loading');
+                var self = this;
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'https://api.github.com/gists/' + gistId, true);
+                xhr.setRequestHeader('Authorization', 'token ' + token);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                var data = JSON.parse(xhr.responseText);
+                                var content = data.files['brand-review.json'];
+                                if (content) {
+                                    var parsed = JSON.parse(content.content);
+                                    if (Array.isArray(parsed.records)) {
+                                        self.records = parsed.records;
+                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                        self.syncStatus = 'success';
+                                        self.syncMsg = '';
+                                        self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
+                                    } else {
+                                        self.syncStatus = 'error';
+                                        self.syncMsg = '数据格式异常';
+                                        self.updateDebug('❌ 数据格式异常', 'error');
+                                    }
+                                } else {
+                                    self.records = [];
+                                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                    self.syncStatus = 'success';
+                                    self.syncMsg = '';
+                                    self.updateDebug('✅ 连接成功，当前无数据', 'success');
+                                    self.saveToGist();
+                                }
+                            } catch (e) {
+                                self.syncStatus = 'error';
+                                self.syncMsg = '解析数据失败';
+                                self.updateDebug('❌ 解析数据失败', 'error');
+                            }
+                        } else if (xhr.status === 404) {
+                            self.records = [];
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                            self.syncStatus = 'success';
+                            self.syncMsg = '';
+                            self.updateDebug('✅ Gist 为空，初始化完成', 'success');
+                            self.saveToGist();
+                        } else {
+                            var errMsg = '连接失败 (状态: ' + xhr.status + ')';
+                            try {
+                                var errData = JSON.parse(xhr.responseText);
+                                if (errData.message) errMsg = errData.message;
+                            } catch (e) {}
+                            self.syncStatus = 'error';
+                            self.syncMsg = errMsg;
+                            self.updateDebug('❌ 连接失败: ' + errMsg, 'error');
+                        }
+                    }
+                };
+                xhr.onerror = function() {
+                    self.syncStatus = 'error';
+                    self.syncMsg = '网络错误';
+                    self.updateDebug('❌ 网络错误，请检查网络', 'error');
+                };
+                xhr.send();
+            },
+            connectAndSync: function() {
+                var gistId = this.getGistId();
+                var token = this.getGithubToken();
+                this.updateDebug('Gist ID: ' + (gistId || '空') + ' | Token: ' + (token ? '已填 ✓' : '未填'), '');
+                if (!gistId) {
+                    alert('请填写 Gist ID');
+                    return;
+                }
+                if (!token) {
+                    alert('请填写 GitHub Token');
+                    return;
+                }
+                localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
+                this.loadFromGist();
+            },
+            loadFromLocal: function() {
+                try {
+                    var data = localStorage.getItem(STORAGE_KEY);
+                    if (data) this.records = JSON.parse(data);
+                } catch (e) { this.records = []; }
+                try {
+                    var config = localStorage.getItem(CONFIG_KEY);
+                    if (config) {
+                        var c = JSON.parse(config);
+                        var gistEl = document.getElementById('gistIdInput');
+                        var tokenEl = document.getElementById('githubTokenInput');
+                        if (gistEl) gistEl.value = c.gistId || '';
+                        if (tokenEl) tokenEl.value = c.token || '';
+                    }
+                } catch (e) {}
+                // 读取翻页模式偏好
+                try {
+                    var savedMode = localStorage.getItem(FLIP_MODE_KEY);
+                    if (savedMode === 'card' || savedMode === 'book') {
+                        this.flipMode = savedMode;
+                    }
+                } catch (e) {}
+            },
+            exportData: function() {
+                var data = JSON.stringify(this.records, null, 2);
+                var blob = new Blob([data], { type: 'application/json' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'brand-review_' + this.today + '.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+            importData: function() {
+                document.getElementById('importInput').click();
+            },
+            handleImport: function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                var self = this;
+                reader.onload = function(ev) {
+                    try {
+                        var data = JSON.parse(ev.target.result);
+                        if (Array.isArray(data)) {
+                            if (confirm('导入 ' + data.length + ' 条记录，是否覆盖？')) {
+                                self.records = data;
+                                self.saveToGist();
+                                alert('导入成功！');
+                            }
+                        } else {
+                            alert('格式不正确');
+                        }
+                    } catch (err) {
+                        alert('解析失败');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            },
+            clearAll: function() {
+                var self = this;
+                if (confirm('确定删除所有记录吗？此操作将同步到 Gist，其他设备也会被清空。')) {
+                    self.records = [];
+                    self.imagePreview = null;
+                    self.goodInput = '';
+                    self.improveInput = '';
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                    self.saveToGist();
+                    self.updateDebug('🗑️ 已清空所有记录，Gist 已同步', '');
+                }
             }
         });
     })();

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>📷 brand-review</title>
     <style>
+        /* ===== 基础样式 ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -303,181 +304,40 @@
         .debug-hint.success { background: #dcfce7; color: #166534; }
         .debug-hint.loading { background: #fef9c3; color: #854d0e; }
 
-        /* ===== 全屏翻页浮层 ===== */
-        .flipbook-overlay {
+        /* ===== 全屏翻页模式 ===== */
+        .flipbook-fullscreen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(12px);
-            z-index: 9999;
+            background: #1a1a2e;
+            z-index: 10000;
             display: none;
-            justify-content: center;
-            align-items: center;
             flex-direction: column;
-            padding: 20px;
+            padding: 20px 30px 30px 30px;
+            overflow: hidden;
             opacity: 0;
-            transition: opacity 0.4s ease;
+            transition: opacity 0.3s ease;
         }
-        .flipbook-overlay.open {
+        .flipbook-fullscreen.open {
             display: flex;
             opacity: 1;
         }
-        .flipbook-container {
-            position: relative;
-            width: 100%;
-            max-width: 880px;
-            height: 85vh;
-            max-height: 700px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            perspective: 1200px;
-            /* 当鼠标在容器内，点击不关闭浮层 */
-            pointer-events: auto;
-        }
-        .flipbook-page {
-            position: absolute;
-            width: 90%;
-            max-width: 720px;
-            height: 100%;
-            max-height: 650px;
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease;
-            transform-origin: left center;
-            will-change: transform, opacity;
-            pointer-events: none;
-        }
-        .flipbook-page.active {
-            pointer-events: auto;
-        }
-
-        /* 卡片翻页模式 (淡入淡出) */
-        .flipbook-mode-card .flipbook-page {
-            transition: opacity 0.4s ease, transform 0.4s ease;
-            transform: scale(0.95) !important;
-            opacity: 0;
-        }
-        .flipbook-mode-card .flipbook-page.active {
-            opacity: 1;
-            transform: scale(1) !important;
-            pointer-events: auto;
-        }
-        .flipbook-mode-card .flipbook-page.prev {
-            opacity: 0;
-            transform: scale(0.9) translateX(-30px) !important;
-        }
-        .flipbook-mode-card .flipbook-page.next {
-            opacity: 0;
-            transform: scale(0.9) translateX(30px) !important;
-        }
-
-        /* 翻书模式 (3D flip) */
-        .flipbook-mode-book .flipbook-page {
-            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-            transform: rotateY(0deg);
-            transform-origin: left center;
-        }
-        .flipbook-mode-book .flipbook-page.flipped {
-            transform: rotateY(-180deg);
-        }
-        .flipbook-mode-book .flipbook-page.next-page {
-            transform: rotateY(5deg) scale(0.98);
-            opacity: 0.7;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .flipbook-page .page-content {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            padding: 24px 28px;
-            overflow-y: auto;
-        }
-        .flipbook-page .page-content .page-image {
-            flex: 0 0 55%;
-            min-height: 0;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #f1f5f9;
-            margin-bottom: 16px;
-        }
-        .flipbook-page .page-content .page-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .flipbook-page .page-content .page-text {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            overflow-y: auto;
-        }
-        .flipbook-page .page-content .page-text .page-date {
-            font-size: 0.75rem;
-            color: #94a3b8;
-        }
-        .flipbook-page .page-content .page-text .page-tags {
-            font-size: 0.8rem;
-            color: #64748b;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .flipbook-page .page-content .page-text .page-tags span {
-            background: #eef2f6;
-            padding: 2px 12px;
-            border-radius: 20px;
-        }
-        .flipbook-page .page-content .page-text .page-good {
-            background: #f0fdf4;
-            padding: 8px 12px;
-            border-radius: 10px;
-            border-left: 3px solid #22c55e;
-            font-size: 0.85rem;
-        }
-        .flipbook-page .page-content .page-text .page-improve {
-            background: #fef2f2;
-            padding: 8px 12px;
-            border-radius: 10px;
-            border-left: 3px solid #ef4444;
-            font-size: 0.85rem;
-        }
-        .flipbook-page .page-content .page-text .page-label {
-            font-weight: 600;
-            font-size: 0.7rem;
-            color: #64748b;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .flipbook-controls {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 100%;
+        .flipbook-fullscreen .fb-header {
             display: flex;
             justify-content: space-between;
-            pointer-events: none;
-            padding: 0 10px;
+            align-items: center;
+            padding: 8px 0 16px 0;
+            flex-shrink: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-        .flipbook-controls button {
-            pointer-events: auto;
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.2);
+        .flipbook-fullscreen .fb-header .fb-close {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
             color: white;
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             font-size: 1.4rem;
             cursor: pointer;
@@ -486,295 +346,420 @@
             align-items: center;
             justify-content: center;
         }
-        .flipbook-controls button:hover {
-            background: rgba(255,255,255,0.3);
+        .flipbook-fullscreen .fb-header .fb-close:hover {
+            background: rgba(255,255,255,0.2);
         }
-        .flipbook-controls button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
+        .flipbook-fullscreen .fb-header .fb-progress {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
         }
 
-        .flipbook-topbar {
-            position: absolute;
-            top: 16px;
-            left: 0;
-            right: 0;
+        .flipbook-fullscreen .fb-body {
+            flex: 1;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 0 24px;
-            pointer-events: none;
-            z-index: 10;
+            justify-content: center;
+            position: relative;
+            min-height: 0;
+            perspective: 1200px;
+            margin: 10px 0;
         }
-        .flipbook-topbar > * {
+        .flipbook-fullscreen .fb-body .fb-card {
+            position: absolute;
+            width: 88%;
+            max-width: 780px;
+            height: 85%;
+            max-height: 620px;
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            transform: scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .flipbook-fullscreen .fb-body .fb-card.active {
+            transform: scale(1);
+            opacity: 1;
             pointer-events: auto;
         }
-        .flipbook-progress {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.85rem;
-            font-weight: 500;
-            background: rgba(0,0,0,0.3);
-            padding: 6px 16px;
-            border-radius: 40px;
-            backdrop-filter: blur(4px);
+        .flipbook-fullscreen .fb-body .fb-card.prev {
+            transform: scale(0.85) translateX(-40px);
+            opacity: 0;
         }
-        .flipbook-close {
-            background: rgba(255,255,255,0.15);
+        .flipbook-fullscreen .fb-body .fb-card.next {
+            transform: scale(0.85) translateX(40px);
+            opacity: 0;
+        }
+
+        /* 翻书效果 */
+        .flipbook-fullscreen.book-mode .fb-body .fb-card {
+            transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease;
+            transform-origin: left center;
+        }
+        .flipbook-fullscreen.book-mode .fb-body .fb-card.flipped {
+            transform: rotateY(-170deg) scale(0.95);
+        }
+        .flipbook-fullscreen.book-mode .fb-body .fb-card.next-page {
+            transform: rotateY(6deg) scale(0.97);
+            opacity: 0.6;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 28px 32px;
+            overflow-y: auto;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-image {
+            flex: 0 0 55%;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #f1f5f9;
+            margin-bottom: 14px;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-text .fb-date {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-text .fb-tags {
+            font-size: 0.8rem;
+            color: #64748b;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-text .fb-tags span {
+            background: #eef2f6;
+            padding: 2px 12px;
+            border-radius: 20px;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-text .fb-good {
+            background: #f0fdf4;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border-left: 3px solid #22c55e;
+            font-size: 0.85rem;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-text .fb-improve {
+            background: #fef2f2;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border-left: 3px solid #ef4444;
+            font-size: 0.85rem;
+        }
+        .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-text .fb-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #64748b;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .flipbook-fullscreen .fb-body .fb-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.08);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.12);
             color: white;
-            width: 40px;
-            height: 40px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            font-size: 1.2rem;
+            font-size: 1.6rem;
             cursor: pointer;
             transition: 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 20;
         }
-        .flipbook-close:hover {
-            background: rgba(255,255,255,0.3);
+        .flipbook-fullscreen .fb-body .fb-arrow:hover {
+            background: rgba(255,255,255,0.18);
+        }
+        .flipbook-fullscreen .fb-body .fb-arrow:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+        .flipbook-fullscreen .fb-body .fb-arrow.fb-arrow-left {
+            left: 12px;
+        }
+        .flipbook-fullscreen .fb-body .fb-arrow.fb-arrow-right {
+            right: 12px;
         }
 
-        .flipbook-mode-toggle {
-            position: absolute;
-            bottom: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            pointer-events: none;
+        .flipbook-fullscreen .fb-footer {
+            flex-shrink: 0;
             display: flex;
-            gap: 8px;
+            justify-content: center;
+            gap: 12px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.08);
         }
-        .flipbook-mode-toggle > * {
-            pointer-events: auto;
-        }
-        .flipbook-mode-toggle button {
-            background: rgba(255,255,255,0.12);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.15);
+        .flipbook-fullscreen .fb-footer button {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
             color: rgba(255,255,255,0.7);
-            padding: 6px 18px;
+            padding: 8px 24px;
             border-radius: 40px;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: 0.2s;
-            margin: 0 4px;
+            font-weight: 500;
         }
-        .flipbook-mode-toggle button.active {
-            background: rgba(255,255,255,0.25);
+        .flipbook-fullscreen .fb-footer button.active {
+            background: rgba(255,255,255,0.18);
             color: white;
-            border-color: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.25);
         }
-        .flipbook-mode-toggle button:hover {
-            background: rgba(255,255,255,0.2);
+        .flipbook-fullscreen .fb-footer button:hover {
+            background: rgba(255,255,255,0.15);
         }
 
-        .flipbook-empty {
-            color: rgba(255,255,255,0.6);
-            font-size: 1.2rem;
-            text-align: center;
+        @media (max-width: 600px) {
+            .flipbook-fullscreen {
+                padding: 12px 14px 16px 14px;
+            }
+            .flipbook-fullscreen .fb-body .fb-card {
+                width: 95%;
+                height: 80%;
+            }
+            .flipbook-fullscreen .fb-body .fb-card .fb-card-content {
+                padding: 16px 18px;
+            }
+            .flipbook-fullscreen .fb-body .fb-card .fb-card-content .fb-image {
+                flex: 0 0 45%;
+            }
+            .flipbook-fullscreen .fb-body .fb-arrow {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            .flipbook-fullscreen .fb-body .fb-arrow.fb-arrow-left {
+                left: 4px;
+            }
+            .flipbook-fullscreen .fb-body .fb-arrow.fb-arrow-right {
+                right: 4px;
+            }
+            .flipbook-fullscreen .fb-footer button {
+                padding: 6px 14px;
+                font-size: 0.7rem;
+            }
         }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div class="header">
-        <h1>📷 brand-review</h1>
-        <div>
-            <span class="sync-status" :class="syncStatusClass">{{ syncStatusText }}</span>
-            <span class="streak-badge" :class="{ off: streak === 0 }">🔥 {{ streak }} 天</span>
-        </div>
-    </div>
-
-    <div class="config-card">
-        <div class="config-row">
-            <input type="text" id="gistIdInput" placeholder="Gist ID（如：abc123def456）" />
-            <input type="password" id="githubTokenInput" placeholder="GitHub Token（需 gist 权限）" />
-            <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
-                {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
-            </button>
-        </div>
-        <div class="hint">💡 去 GitHub → Settings → Developer settings → Personal access tokens → 生成 Token（勾选 gist 权限）</div>
-        <div class="debug-hint" id="debugHint">💡 请填写 Gist ID 和 GitHub Token，然后点击"连接并同步"</div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">📌 今日记录 · {{ today }}</div>
-        <div class="today-grid">
-            <div class="upload-area" @click="triggerUpload">
-                <input type="file" id="fileInput" accept="image/*" @change="handleFile" />
-                <div v-if="!imagePreview" class="placeholder">
-                    <span>🖼️</span>点击上传截图
-                </div>
-                <img v-else :src="imagePreview" alt="预览" />
+    <!-- ===== 主界面 ===== -->
+    <div id="mainApp">
+        <div class="header">
+            <h1>📷 brand-review</h1>
+            <div>
+                <span class="sync-status" :class="syncStatusClass">{{ syncStatusText }}</span>
+                <span class="streak-badge" :class="{ off: streak === 0 }">🔥 {{ streak }} 天</span>
             </div>
-            <div class="comment-section">
-                <div class="form-row">
-                    <div>
-                        <label>📂 来源</label>
-                        <select v-model="sourceType">
-                            <option value="自己设计">自己设计</option>
-                            <option value="其他品牌">其他品牌</option>
-                            <option value="其他">其他</option>
-                        </select>
+        </div>
+
+        <div class="config-card">
+            <div class="config-row">
+                <input type="text" id="gistIdInput" placeholder="Gist ID（如：abc123def456）" />
+                <input type="password" id="githubTokenInput" placeholder="GitHub Token（需 gist 权限）" />
+                <button class="btn-connect" @click="connectAndSync" :disabled="syncing">
+                    {{ syncing ? '⏳ 同步中...' : '🔗 连接并同步' }}
+                </button>
+            </div>
+            <div class="hint">💡 去 GitHub → Settings → Developer settings → Personal access tokens → 生成 Token（勾选 gist 权限）</div>
+            <div class="debug-hint" id="debugHint">💡 请填写 Gist ID 和 GitHub Token，然后点击"连接并同步"</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📌 今日记录 · {{ today }}</div>
+            <div class="today-grid">
+                <div class="upload-area" @click="triggerUpload">
+                    <input type="file" id="fileInput" accept="image/*" @change="handleFile" />
+                    <div v-if="!imagePreview" class="placeholder">
+                        <span>🖼️</span>点击上传截图
                     </div>
-                    <div>
-                        <label>🏷️ 品类</label>
-                        <select v-model="categoryType">
-                            <option value="饮食">饮食</option>
-                            <option value="电子产品">电子产品</option>
-                            <option value="汽车">汽车</option>
-                            <option value="服饰">服饰</option>
-                            <option value="家居">家居</option>
-                            <option value="金融">金融</option>
-                            <option value="互联网">互联网</option>
-                            <option value="教育">教育</option>
-                            <option value="医疗">医疗</option>
-                            <option value="旅游">旅游</option>
-                            <option value="娱乐">娱乐</option>
-                            <option value="其他">其他</option>
-                        </select>
-                    </div>
+                    <img v-else :src="imagePreview" alt="预览" />
                 </div>
-                <div>
-                    <label>👍 值得学习的地方</label>
-                    <textarea v-model="goodInput" placeholder="色彩搭配、布局结构、交互细节…"></textarea>
-                </div>
-                <div>
-                    <label>🔧 可以改善的地方</label>
-                    <textarea v-model="improveInput" placeholder="信息层级、可读性、操作反馈…"></textarea>
-                </div>
-                <button class="btn-save" @click="saveToday" :disabled="!canSave">💾 保存记录</button>
-            </div>
-        </div>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-        <div class="stats-bar">
-            <span class="stat">📚 总记录 <span class="num">{{ totalRecords }}</span></span>
-            <span class="stat">📅 本周 <span class="num">{{ weekCount }}</span></span>
-            <span class="stat">📌 今日 <span class="num">{{ todayCount }}</span></span>
-            <div class="sort-group">
-                <span style="font-size:0.75rem; color:#94a3b8;">排序</span>
-                <select v-model="sortOrder">
-                    <option value="newest">最新优先</option>
-                    <option value="oldest">最早优先</option>
-                </select>
-                <select v-model="filterSource">
-                    <option value="全部">全部来源</option>
-                    <option value="自己设计">自己设计</option>
-                    <option value="其他品牌">其他品牌</option>
-                    <option value="其他">其他</option>
-                </select>
-                <select v-model="filterCategory">
-                    <option value="全部">全部品类</option>
-                    <option value="饮食">饮食</option>
-                    <option value="电子产品">电子产品</option>
-                    <option value="汽车">汽车</option>
-                    <option value="服饰">服饰</option>
-                    <option value="家居">家居</option>
-                    <option value="金融">金融</option>
-                    <option value="互联网">互联网</option>
-                    <option value="教育">教育</option>
-                    <option value="医疗">医疗</option>
-                    <option value="旅游">旅游</option>
-                    <option value="娱乐">娱乐</option>
-                    <option value="其他">其他</option>
-                </select>
-            </div>
-        </div>
-        <div class="toolbar">
-            <button class="btn-export" @click="exportData">📤 导出备份</button>
-            <button class="btn-export" @click="importData">📥 导入备份</button>
-            <input type="file" id="importInput" accept=".json" style="display:none" @change="handleImport" />
-            <button class="btn-export" @click="clearAll" style="color:#ef4444;">🗑️ 清空</button>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">📅 历史记录</div>
-        <div v-if="filteredRecords.length === 0" class="empty-state">
-            <span style="font-size:2rem; display:block; margin-bottom:8px;">📭</span>
-            还没有记录，今天开始吧！
-        </div>
-        <div class="history-grid" v-else>
-            <div class="history-item" v-for="(item, index) in filteredRecords" :key="item.id" @click="openFlipbook(index)">
-                <img :src="item.imageData" alt="截图" />
-                <div class="info">
-                    <div class="date">{{ item.date }}</div>
-                    <div class="tags">
-                        <span>{{ item.source || '其他' }}</span>
-                        <span>{{ item.category || '其他' }}</span>
-                    </div>
-                    <div class="good-preview">👍 {{ item.good || '未填写' }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== 全屏翻页浮层 ===== -->
-    <div class="flipbook-overlay" id="flipbookOverlay" @click="closeFlipbook">
-        <div class="flipbook-container" @click.stop>
-            <!-- 顶部栏 -->
-            <div class="flipbook-topbar">
-                <span class="flipbook-progress">{{ flipIndex + 1 }} / {{ flipRecords.length }}</span>
-                <button class="flipbook-close" @click="closeFlipbook">✕</button>
-            </div>
-
-            <!-- 左右箭头 -->
-            <div class="flipbook-controls">
-                <button @click="flipPrev" :disabled="flipIndex <= 0">◀</button>
-                <button @click="flipNext" :disabled="flipIndex >= flipRecords.length - 1">▶</button>
-            </div>
-
-            <!-- 页面容器 -->
-            <div id="flipbookPages" :class="['flipbook-container', flipMode === 'card' ? 'flipbook-mode-card' : 'flipbook-mode-book']" style="position:relative;width:100%;height:100%;">
-                <div v-for="(item, idx) in flipRecords" 
-                     :key="item.id" 
-                     class="flipbook-page"
-                     :class="{
-                         active: idx === flipIndex,
-                         prev: idx === flipIndex - 1 && flipMode === 'card',
-                         next: idx === flipIndex + 1 && flipMode === 'card',
-                         'next-page': idx === flipIndex + 1 && flipMode === 'book',
-                         flipped: idx < flipIndex && flipMode === 'book'
-                     }"
-                     :style="getPageStyle(idx)">
-                    <div class="page-content">
-                        <div class="page-image">
-                            <img :src="item.imageData" alt="记录图片" />
+                <div class="comment-section">
+                    <div class="form-row">
+                        <div>
+                            <label>📂 来源</label>
+                            <select v-model="sourceType">
+                                <option value="自己设计">自己设计</option>
+                                <option value="其他品牌">其他品牌</option>
+                                <option value="其他">其他</option>
+                            </select>
                         </div>
-                        <div class="page-text">
-                            <div class="page-date">📅 {{ item.date }}</div>
-                            <div class="page-tags">
-                                <span>📂 {{ item.source || '其他' }}</span>
-                                <span>🏷️ {{ item.category || '其他' }}</span>
-                            </div>
-                            <div class="page-good">
-                                <span class="page-label">👍 值得学习</span>
-                                {{ item.good || '未填写' }}
-                            </div>
-                            <div class="page-improve" v-if="item.improve">
-                                <span class="page-label">🔧 可以改善</span>
-                                {{ item.improve }}
-                            </div>
+                        <div>
+                            <label>🏷️ 品类</label>
+                            <select v-model="categoryType">
+                                <option value="饮食">饮食</option>
+                                <option value="电子产品">电子产品</option>
+                                <option value="汽车">汽车</option>
+                                <option value="服饰">服饰</option>
+                                <option value="家居">家居</option>
+                                <option value="金融">金融</option>
+                                <option value="互联网">互联网</option>
+                                <option value="教育">教育</option>
+                                <option value="医疗">医疗</option>
+                                <option value="旅游">旅游</option>
+                                <option value="娱乐">娱乐</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label>👍 值得学习的地方</label>
+                        <textarea v-model="goodInput" placeholder="色彩搭配、布局结构、交互细节…"></textarea>
+                    </div>
+                    <div>
+                        <label>🔧 可以改善的地方</label>
+                        <textarea v-model="improveInput" placeholder="信息层级、可读性、操作反馈…"></textarea>
+                    </div>
+                    <button class="btn-save" @click="saveToday" :disabled="!canSave">💾 保存记录</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div class="stats-bar">
+                <span class="stat">📚 总记录 <span class="num">{{ totalRecords }}</span></span>
+                <span class="stat">📅 本周 <span class="num">{{ weekCount }}</span></span>
+                <span class="stat">📌 今日 <span class="num">{{ todayCount }}</span></span>
+                <div class="sort-group">
+                    <span style="font-size:0.75rem; color:#94a3b8;">排序</span>
+                    <select v-model="sortOrder">
+                        <option value="newest">最新优先</option>
+                        <option value="oldest">最早优先</option>
+                    </select>
+                    <select v-model="filterSource">
+                        <option value="全部">全部来源</option>
+                        <option value="自己设计">自己设计</option>
+                        <option value="其他品牌">其他品牌</option>
+                        <option value="其他">其他</option>
+                    </select>
+                    <select v-model="filterCategory">
+                        <option value="全部">全部品类</option>
+                        <option value="饮食">饮食</option>
+                        <option value="电子产品">电子产品</option>
+                        <option value="汽车">汽车</option>
+                        <option value="服饰">服饰</option>
+                        <option value="家居">家居</option>
+                        <option value="金融">金融</option>
+                        <option value="互联网">互联网</option>
+                        <option value="教育">教育</option>
+                        <option value="医疗">医疗</option>
+                        <option value="旅游">旅游</option>
+                        <option value="娱乐">娱乐</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+            </div>
+            <div class="toolbar">
+                <button class="btn-export" @click="exportData">📤 导出备份</button>
+                <button class="btn-export" @click="importData">📥 导入备份</button>
+                <input type="file" id="importInput" accept=".json" style="display:none" @change="handleImport" />
+                <button class="btn-export" @click="clearAll" style="color:#ef4444;">🗑️ 清空</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📅 历史记录</div>
+            <div v-if="filteredRecords.length === 0" class="empty-state">
+                <span style="font-size:2rem; display:block; margin-bottom:8px;">📭</span>
+                还没有记录，今天开始吧！
+            </div>
+            <div class="history-grid" v-else>
+                <div class="history-item" v-for="(item, index) in filteredRecords" :key="item.id" @click="openFlipbook(index)">
+                    <img :src="item.imageData" alt="截图" />
+                    <div class="info">
+                        <div class="date">{{ item.date }}</div>
+                        <div class="tags">
+                            <span>{{ item.source || '其他' }}</span>
+                            <span>{{ item.category || '其他' }}</span>
+                        </div>
+                        <div class="good-preview">👍 {{ item.good || '未填写' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 全屏翻页模式 ===== -->
+    <div class="flipbook-fullscreen" id="flipbookFullscreen">
+        <div class="fb-header">
+            <button class="fb-close" @click="closeFlipbook">✕</button>
+            <span class="fb-progress">{{ flipIndex + 1 }} / {{ flipRecords.length }}</span>
+        </div>
+        <div class="fb-body" :class="flipMode === 'book' ? 'book-mode' : ''">
+            <button class="fb-arrow fb-arrow-left" @click="flipPrev" :disabled="flipIndex <= 0">◀</button>
+            <button class="fb-arrow fb-arrow-right" @click="flipNext" :disabled="flipIndex >= flipRecords.length - 1">▶</button>
+
+            <div v-for="(item, idx) in flipRecords" 
+                 :key="item.id" 
+                 class="fb-card"
+                 :class="{
+                     active: idx === flipIndex,
+                     prev: idx === flipIndex - 1 && flipMode === 'card',
+                     next: idx === flipIndex + 1 && flipMode === 'card',
+                     'next-page': idx === flipIndex + 1 && flipMode === 'book',
+                     flipped: idx < flipIndex && flipMode === 'book'
+                 }"
+                 :style="getPageStyle(idx)">
+                <div class="fb-card-content">
+                    <div class="fb-image">
+                        <img :src="item.imageData" alt="记录图片" />
+                    </div>
+                    <div class="fb-text">
+                        <div class="fb-date">📅 {{ item.date }}</div>
+                        <div class="fb-tags">
+                            <span>📂 {{ item.source || '其他' }}</span>
+                            <span>🏷️ {{ item.category || '其他' }}</span>
+                        </div>
+                        <div class="fb-good">
+                            <span class="fb-label">👍 值得学习</span>
+                            {{ item.good || '未填写' }}
+                        </div>
+                        <div class="fb-improve" v-if="item.improve">
+                            <span class="fb-label">🔧 可以改善</span>
+                            {{ item.improve }}
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- 底部切换按钮 -->
-            <div class="flipbook-mode-toggle">
-                <button @click="flipMode = 'card'" :class="{ active: flipMode === 'card' }">📄 卡片翻页</button>
-                <button @click="flipMode = 'book'" :class="{ active: flipMode === 'book' }">📖 翻书效果</button>
-            </div>
+        </div>
+        <div class="fb-footer">
+            <button @click="flipMode = 'card'" :class="{ active: flipMode === 'card' }">📄 卡片翻页</button>
+            <button @click="flipMode = 'book'" :class="{ active: flipMode === 'book' }">📖 翻书效果</button>
         </div>
     </div>
 
-    <!-- ===== 原有的编辑 Modal ===== -->
+    <!-- ===== 编辑 Modal ===== -->
     <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
         <div class="modal-content" v-if="modalItem">
             <button class="modal-close" @click="closeModal">✕</button>
@@ -1052,7 +1037,6 @@
                     this.saveToGist();
                 },
 
-                // ========== Modal ==========
                 openModal: function(item) {
                     this.modalItem = item;
                     this.modalTempId = item.id;
@@ -1106,7 +1090,7 @@
                     this.saveToGist();
                 },
 
-                // ========== 翻页功能 ==========
+                // ========== 全屏翻页 ==========
                 openFlipbook: function(index) {
                     if (this.filteredRecords.length === 0) return;
                     this.flipRecords = this.filteredRecords.slice();
@@ -1118,13 +1102,15 @@
                         this.flipMode = 'card';
                     }
                     this.flipOpen = true;
-                    document.getElementById('flipbookOverlay').classList.add('open');
+                    var el = document.getElementById('flipbookFullscreen');
+                    el.classList.add('open');
                     document.body.style.overflow = 'hidden';
                     document.addEventListener('keydown', this.flipKeyHandler);
                 },
                 closeFlipbook: function() {
                     this.flipOpen = false;
-                    document.getElementById('flipbookOverlay').classList.remove('open');
+                    var el = document.getElementById('flipbookFullscreen');
+                    el.classList.remove('open');
                     document.body.style.overflow = '';
                     document.removeEventListener('keydown', this.flipKeyHandler);
                 },
@@ -1156,10 +1142,231 @@
                         } else if (idx === this.flipIndex + 1) {
                             return { zIndex: 5 };
                         } else if (idx < this.flipIndex) {
-                            return { zIndex: 1, transform: 'rotateY(-180deg)' };
+                            return { zIndex: 1, transform: 'rotateY(-170deg) scale(0.95)' };
                         }
                     }
                     return {};
+                },
+
+                // ========== GitHub Gist API ==========
+                saveToGist: function() {
+                    var gistId = this.getGistId();
+                    var token = this.getGithubToken();
+                    if (!gistId) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 Gist ID';
+                        this.updateDebug('❌ Gist ID 为空', 'error');
+                        return;
+                    }
+                    if (!token) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 GitHub Token';
+                        this.updateDebug('❌ GitHub Token 为空', 'error');
+                        return;
+                    }
+                    this.syncStatus = 'loading';
+                    this.updateDebug('⏳ 正在保存到 Gist...', 'loading');
+                    var self = this;
+                    var payload = JSON.stringify({ records: this.records });
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('PATCH', 'https://api.github.com/gists/' + gistId, true);
+                    xhr.setRequestHeader('Authorization', 'token ' + token);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                self.syncStatus = 'success';
+                                self.syncMsg = '';
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
+                                self.updateDebug('✅ 保存成功！', 'success');
+                            } else {
+                                var errMsg = '保存失败 (状态: ' + xhr.status + ')';
+                                try {
+                                    var errData = JSON.parse(xhr.responseText);
+                                    if (errData.message) errMsg = errData.message;
+                                } catch (e) {}
+                                self.syncStatus = 'error';
+                                self.syncMsg = errMsg;
+                                self.updateDebug('❌ 保存失败: ' + errMsg, 'error');
+                            }
+                        }
+                    };
+                    xhr.onerror = function() {
+                        self.syncStatus = 'error';
+                        self.syncMsg = '网络错误';
+                        self.updateDebug('❌ 网络错误，请检查网络', 'error');
+                    };
+                    xhr.send(JSON.stringify({
+                        files: {
+                            'brand-review.json': { content: payload }
+                        }
+                    }));
+                },
+                loadFromGist: function() {
+                    var gistId = this.getGistId();
+                    var token = this.getGithubToken();
+                    if (!gistId) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 Gist ID';
+                        this.updateDebug('❌ Gist ID 为空', 'error');
+                        return;
+                    }
+                    if (!token) {
+                        this.syncStatus = 'error';
+                        this.syncMsg = '请先配置 GitHub Token';
+                        this.updateDebug('❌ GitHub Token 为空', 'error');
+                        return;
+                    }
+                    this.syncStatus = 'loading';
+                    this.updateDebug('⏳ 连接 Gist...', 'loading');
+                    var self = this;
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', 'https://api.github.com/gists/' + gistId, true);
+                    xhr.setRequestHeader('Authorization', 'token ' + token);
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                try {
+                                    var data = JSON.parse(xhr.responseText);
+                                    var content = data.files['brand-review.json'];
+                                    if (content) {
+                                        var parsed = JSON.parse(content.content);
+                                        if (Array.isArray(parsed.records)) {
+                                            self.records = parsed.records;
+                                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                            self.syncStatus = 'success';
+                                            self.syncMsg = '';
+                                            self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
+                                        } else {
+                                            self.syncStatus = 'error';
+                                            self.syncMsg = '数据格式异常';
+                                            self.updateDebug('❌ 数据格式异常', 'error');
+                                        }
+                                    } else {
+                                        self.records = [];
+                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                        self.syncStatus = 'success';
+                                        self.syncMsg = '';
+                                        self.updateDebug('✅ 连接成功，当前无数据', 'success');
+                                        self.saveToGist();
+                                    }
+                                } catch (e) {
+                                    self.syncStatus = 'error';
+                                    self.syncMsg = '解析数据失败';
+                                    self.updateDebug('❌ 解析数据失败', 'error');
+                                }
+                            } else if (xhr.status === 404) {
+                                self.records = [];
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                                self.syncStatus = 'success';
+                                self.syncMsg = '';
+                                self.updateDebug('✅ Gist 为空，初始化完成', 'success');
+                                self.saveToGist();
+                            } else {
+                                var errMsg = '连接失败 (状态: ' + xhr.status + ')';
+                                try {
+                                    var errData = JSON.parse(xhr.responseText);
+                                    if (errData.message) errMsg = errData.message;
+                                } catch (e) {}
+                                self.syncStatus = 'error';
+                                self.syncMsg = errMsg;
+                                self.updateDebug('❌ 连接失败: ' + errMsg, 'error');
+                            }
+                        }
+                    };
+                    xhr.onerror = function() {
+                        self.syncStatus = 'error';
+                        self.syncMsg = '网络错误';
+                        self.updateDebug('❌ 网络错误，请检查网络', 'error');
+                    };
+                    xhr.send();
+                },
+                connectAndSync: function() {
+                    var gistId = this.getGistId();
+                    var token = this.getGithubToken();
+                    this.updateDebug('Gist ID: ' + (gistId || '空') + ' | Token: ' + (token ? '已填 ✓' : '未填'), '');
+                    if (!gistId) {
+                        alert('请填写 Gist ID');
+                        return;
+                    }
+                    if (!token) {
+                        alert('请填写 GitHub Token');
+                        return;
+                    }
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
+                    this.loadFromGist();
+                },
+                loadFromLocal: function() {
+                    try {
+                        var data = localStorage.getItem(STORAGE_KEY);
+                        if (data) this.records = JSON.parse(data);
+                    } catch (e) { this.records = []; }
+                    try {
+                        var config = localStorage.getItem(CONFIG_KEY);
+                        if (config) {
+                            var c = JSON.parse(config);
+                            var gistEl = document.getElementById('gistIdInput');
+                            var tokenEl = document.getElementById('githubTokenInput');
+                            if (gistEl) gistEl.value = c.gistId || '';
+                            if (tokenEl) tokenEl.value = c.token || '';
+                        }
+                    } catch (e) {}
+                    try {
+                        var savedMode = localStorage.getItem(FLIP_MODE_KEY);
+                        if (savedMode === 'card' || savedMode === 'book') {
+                            this.flipMode = savedMode;
+                        }
+                    } catch (e) {}
+                },
+                exportData: function() {
+                    var data = JSON.stringify(this.records, null, 2);
+                    var blob = new Blob([data], { type: 'application/json' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'brand-review_' + this.today + '.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                importData: function() {
+                    document.getElementById('importInput').click();
+                },
+                handleImport: function(e) {
+                    var file = e.target.files[0];
+                    if (!file) return;
+                    var reader = new FileReader();
+                    var self = this;
+                    reader.onload = function(ev) {
+                        try {
+                            var data = JSON.parse(ev.target.result);
+                            if (Array.isArray(data)) {
+                                if (confirm('导入 ' + data.length + ' 条记录，是否覆盖？')) {
+                                    self.records = data;
+                                    self.saveToGist();
+                                    alert('导入成功！');
+                                }
+                            } else {
+                                alert('格式不正确');
+                            }
+                        } catch (err) {
+                            alert('解析失败');
+                        }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                },
+                clearAll: function() {
+                    var self = this;
+                    if (confirm('确定删除所有记录吗？此操作将同步到 Gist，其他设备也会被清空。')) {
+                        self.records = [];
+                        self.imagePreview = null;
+                        self.goodInput = '';
+                        self.improveInput = '';
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
+                        self.saveToGist();
+                        self.updateDebug('🗑️ 已清空所有记录，Gist 已同步', '');
+                    }
                 }
             },
             watch: {
@@ -1179,226 +1386,6 @@
                         self.updateDebug('💡 请填写 Gist ID 和 GitHub Token，然后点击"连接并同步"', '');
                     }
                 }, 500);
-            },
-            // ========== GitHub Gist API ==========
-            saveToGist: function() {
-                var gistId = this.getGistId();
-                var token = this.getGithubToken();
-                if (!gistId) {
-                    this.syncStatus = 'error';
-                    this.syncMsg = '请先配置 Gist ID';
-                    this.updateDebug('❌ Gist ID 为空', 'error');
-                    return;
-                }
-                if (!token) {
-                    this.syncStatus = 'error';
-                    this.syncMsg = '请先配置 GitHub Token';
-                    this.updateDebug('❌ GitHub Token 为空', 'error');
-                    return;
-                }
-                this.syncStatus = 'loading';
-                this.updateDebug('⏳ 正在保存到 Gist...', 'loading');
-                var self = this;
-                var payload = JSON.stringify({ records: this.records });
-                var xhr = new XMLHttpRequest();
-                xhr.open('PATCH', 'https://api.github.com/gists/' + gistId, true);
-                xhr.setRequestHeader('Authorization', 'token ' + token);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status >= 200 && xhr.status < 300) {
-                            self.syncStatus = 'success';
-                            self.syncMsg = '';
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                            localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
-                            self.updateDebug('✅ 保存成功！', 'success');
-                        } else {
-                            var errMsg = '保存失败 (状态: ' + xhr.status + ')';
-                            try {
-                                var errData = JSON.parse(xhr.responseText);
-                                if (errData.message) errMsg = errData.message;
-                            } catch (e) {}
-                            self.syncStatus = 'error';
-                            self.syncMsg = errMsg;
-                            self.updateDebug('❌ 保存失败: ' + errMsg, 'error');
-                        }
-                    }
-                };
-                xhr.onerror = function() {
-                    self.syncStatus = 'error';
-                    self.syncMsg = '网络错误';
-                    self.updateDebug('❌ 网络错误，请检查网络', 'error');
-                };
-                xhr.send(JSON.stringify({
-                    files: {
-                        'brand-review.json': { content: payload }
-                    }
-                }));
-            },
-            loadFromGist: function() {
-                var gistId = this.getGistId();
-                var token = this.getGithubToken();
-                if (!gistId) {
-                    this.syncStatus = 'error';
-                    this.syncMsg = '请先配置 Gist ID';
-                    this.updateDebug('❌ Gist ID 为空', 'error');
-                    return;
-                }
-                if (!token) {
-                    this.syncStatus = 'error';
-                    this.syncMsg = '请先配置 GitHub Token';
-                    this.updateDebug('❌ GitHub Token 为空', 'error');
-                    return;
-                }
-                this.syncStatus = 'loading';
-                this.updateDebug('⏳ 连接 Gist...', 'loading');
-                var self = this;
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', 'https://api.github.com/gists/' + gistId, true);
-                xhr.setRequestHeader('Authorization', 'token ' + token);
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status >= 200 && xhr.status < 300) {
-                            try {
-                                var data = JSON.parse(xhr.responseText);
-                                var content = data.files['brand-review.json'];
-                                if (content) {
-                                    var parsed = JSON.parse(content.content);
-                                    if (Array.isArray(parsed.records)) {
-                                        self.records = parsed.records;
-                                        localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                        self.syncStatus = 'success';
-                                        self.syncMsg = '';
-                                        self.updateDebug('✅ 已加载 ' + self.records.length + ' 条记录', 'success');
-                                    } else {
-                                        self.syncStatus = 'error';
-                                        self.syncMsg = '数据格式异常';
-                                        self.updateDebug('❌ 数据格式异常', 'error');
-                                    }
-                                } else {
-                                    self.records = [];
-                                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                                    self.syncStatus = 'success';
-                                    self.syncMsg = '';
-                                    self.updateDebug('✅ 连接成功，当前无数据', 'success');
-                                    self.saveToGist();
-                                }
-                            } catch (e) {
-                                self.syncStatus = 'error';
-                                self.syncMsg = '解析数据失败';
-                                self.updateDebug('❌ 解析数据失败', 'error');
-                            }
-                        } else if (xhr.status === 404) {
-                            self.records = [];
-                            localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                            self.syncStatus = 'success';
-                            self.syncMsg = '';
-                            self.updateDebug('✅ Gist 为空，初始化完成', 'success');
-                            self.saveToGist();
-                        } else {
-                            var errMsg = '连接失败 (状态: ' + xhr.status + ')';
-                            try {
-                                var errData = JSON.parse(xhr.responseText);
-                                if (errData.message) errMsg = errData.message;
-                            } catch (e) {}
-                            self.syncStatus = 'error';
-                            self.syncMsg = errMsg;
-                            self.updateDebug('❌ 连接失败: ' + errMsg, 'error');
-                        }
-                    }
-                };
-                xhr.onerror = function() {
-                    self.syncStatus = 'error';
-                    self.syncMsg = '网络错误';
-                    self.updateDebug('❌ 网络错误，请检查网络', 'error');
-                };
-                xhr.send();
-            },
-            connectAndSync: function() {
-                var gistId = this.getGistId();
-                var token = this.getGithubToken();
-                this.updateDebug('Gist ID: ' + (gistId || '空') + ' | Token: ' + (token ? '已填 ✓' : '未填'), '');
-                if (!gistId) {
-                    alert('请填写 Gist ID');
-                    return;
-                }
-                if (!token) {
-                    alert('请填写 GitHub Token');
-                    return;
-                }
-                localStorage.setItem(CONFIG_KEY, JSON.stringify({ gistId: gistId, token: token }));
-                this.loadFromGist();
-            },
-            loadFromLocal: function() {
-                try {
-                    var data = localStorage.getItem(STORAGE_KEY);
-                    if (data) this.records = JSON.parse(data);
-                } catch (e) { this.records = []; }
-                try {
-                    var config = localStorage.getItem(CONFIG_KEY);
-                    if (config) {
-                        var c = JSON.parse(config);
-                        var gistEl = document.getElementById('gistIdInput');
-                        var tokenEl = document.getElementById('githubTokenInput');
-                        if (gistEl) gistEl.value = c.gistId || '';
-                        if (tokenEl) tokenEl.value = c.token || '';
-                    }
-                } catch (e) {}
-                try {
-                    var savedMode = localStorage.getItem(FLIP_MODE_KEY);
-                    if (savedMode === 'card' || savedMode === 'book') {
-                        this.flipMode = savedMode;
-                    }
-                } catch (e) {}
-            },
-            exportData: function() {
-                var data = JSON.stringify(this.records, null, 2);
-                var blob = new Blob([data], { type: 'application/json' });
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = 'brand-review_' + this.today + '.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            },
-            importData: function() {
-                document.getElementById('importInput').click();
-            },
-            handleImport: function(e) {
-                var file = e.target.files[0];
-                if (!file) return;
-                var reader = new FileReader();
-                var self = this;
-                reader.onload = function(ev) {
-                    try {
-                        var data = JSON.parse(ev.target.result);
-                        if (Array.isArray(data)) {
-                            if (confirm('导入 ' + data.length + ' 条记录，是否覆盖？')) {
-                                self.records = data;
-                                self.saveToGist();
-                                alert('导入成功！');
-                            }
-                        } else {
-                            alert('格式不正确');
-                        }
-                    } catch (err) {
-                        alert('解析失败');
-                    }
-                };
-                reader.readAsText(file);
-                e.target.value = '';
-            },
-            clearAll: function() {
-                var self = this;
-                if (confirm('确定删除所有记录吗？此操作将同步到 Gist，其他设备也会被清空。')) {
-                    self.records = [];
-                    self.imagePreview = null;
-                    self.goodInput = '';
-                    self.improveInput = '';
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
-                    self.saveToGist();
-                    self.updateDebug('🗑️ 已清空所有记录，Gist 已同步', '');
-                }
             }
         });
     })();

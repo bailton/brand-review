@@ -165,6 +165,14 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+        .modal-body .modal-info .modal-tags select {
+            padding: 2px 8px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.8rem;
+            background: white;
         }
         .modal-body .modal-info .modal-tags span {
             background: #eef2f6;
@@ -433,6 +441,7 @@
         </div>
     </div>
 
+    <!-- ========== Modal 弹窗（已支持编辑来源和品类） ========== -->
     <div class="modal-overlay" :class="{ open: modalOpen }" @click.self="closeModal">
         <div class="modal-content" v-if="modalItem">
             <button class="modal-close" @click="closeModal">✕</button>
@@ -442,20 +451,59 @@
                 </div>
                 <div class="modal-info">
                     <div class="modal-date">📅 {{ modalItem.date }}</div>
+
+                    <!-- 来源 + 品类（支持编辑） -->
                     <div class="modal-tags">
-                        <span>📂 {{ modalItem.source || '其他' }}</span>
-                        <span>🏷️ {{ modalItem.category || '其他' }}</span>
+                        <!-- 来源 -->
+                        <span v-if="!modalEditing">
+                            📂 {{ modalItem.source || '其他' }}
+                        </span>
+                        <span v-else>
+                            📂
+                            <select v-model="modalEditSource">
+                                <option value="自己设计">自己设计</option>
+                                <option value="其他品牌">其他品牌</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </span>
+                        <!-- 品类 -->
+                        <span v-if="!modalEditing">
+                            🏷️ {{ modalItem.category || '其他' }}
+                        </span>
+                        <span v-else>
+                            🏷️
+                            <select v-model="modalEditCategory">
+                                <option value="饮食">饮食</option>
+                                <option value="电子产品">电子产品</option>
+                                <option value="汽车">汽车</option>
+                                <option value="服饰">服饰</option>
+                                <option value="家居">家居</option>
+                                <option value="金融">金融</option>
+                                <option value="互联网">互联网</option>
+                                <option value="教育">教育</option>
+                                <option value="医疗">医疗</option>
+                                <option value="旅游">旅游</option>
+                                <option value="娱乐">娱乐</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </span>
                     </div>
+
+                    <!-- 值得学习 -->
                     <div class="modal-good">
                         <span class="modal-label">👍 值得学习</span>
                         <div v-if="!modalEditing">{{ modalItem.good || '未填写' }}</div>
                         <textarea v-else class="edit-textarea" v-model="modalEditGood"></textarea>
                     </div>
+
+                    <!-- 可以改善 -->
                     <div class="modal-improve">
                         <span class="modal-label">🔧 可以改善</span>
                         <div v-if="!modalEditing">{{ modalItem.improve || '未填写' }}</div>
                         <textarea v-else class="edit-textarea" v-model="modalEditImprove"></textarea>
                     </div>
+
+                    <!-- 底部按钮 -->
                     <div class="modal-footer">
                         <button class="btn-delete" @click="deleteFromModal">🗑️ 删除</button>
                         <div>
@@ -496,6 +544,8 @@
                 modalEditing: false,
                 modalEditGood: '',
                 modalEditImprove: '',
+                modalEditSource: '其他',
+                modalEditCategory: '其他',
                 modalTempId: null,
                 sortOrder: 'newest',
                 filterSource: '全部',
@@ -611,7 +661,6 @@
                     reader.onload = function(ev) {
                         var img = new Image();
                         img.onload = function() {
-                            // 压缩图片
                             var maxWidth = 800;
                             var quality = 0.6;
                             var canvas = document.createElement('canvas');
@@ -625,7 +674,6 @@
                             canvas.height = height;
                             var ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
-                            // 压缩为 JPEG
                             var compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
                             self.imagePreview = compressedDataUrl;
                             self.imageFile = file;
@@ -703,11 +751,14 @@
                     this.saveToGist();
                 },
 
+                // ========== Modal 方法（支持编辑来源和品类） ==========
                 openModal: function(item) {
                     this.modalItem = item;
                     this.modalTempId = item.id;
                     this.modalEditGood = item.good || '';
                     this.modalEditImprove = item.improve || '';
+                    this.modalEditSource = item.source || '其他';
+                    this.modalEditCategory = item.category || '其他';
                     this.modalEditing = false;
                     this.modalOpen = true;
                 },
@@ -722,6 +773,8 @@
                     this.modalEditing = false;
                     this.modalEditGood = this.modalItem.good || '';
                     this.modalEditImprove = this.modalItem.improve || '';
+                    this.modalEditSource = this.modalItem.source || '其他';
+                    this.modalEditCategory = this.modalItem.category || '其他';
                 },
                 saveEdit: function() {
                     var self = this;
@@ -735,6 +788,8 @@
                     if (idx !== -1) {
                         this.records[idx].good = this.modalEditGood.trim();
                         this.records[idx].improve = this.modalEditImprove.trim();
+                        this.records[idx].source = this.modalEditSource;
+                        this.records[idx].category = this.modalEditCategory;
                         this.records[idx].updatedAt = Date.now();
                         this.modalItem = this.records[idx];
                         this.modalEditing = false;
@@ -847,7 +902,6 @@
                                             self.updateDebug('❌ 数据格式异常', 'error');
                                         }
                                     } else {
-                                        // 文件不存在，初始化
                                         self.records = [];
                                         localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
                                         self.syncStatus = 'success';
@@ -861,7 +915,6 @@
                                     self.updateDebug('❌ 解析数据失败', 'error');
                                 }
                             } else if (xhr.status === 404) {
-                                // Gist 不存在，创建新文件
                                 self.records = [];
                                 localStorage.setItem(STORAGE_KEY, JSON.stringify(self.records));
                                 self.syncStatus = 'success';
